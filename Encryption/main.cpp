@@ -3,11 +3,14 @@
 #include <sstream>
 #include <vector>
 #include <map>
+#include <bitset>
+
 
 using std::cout;
 using std::endl;
 using std::vector;
 using std::string;
+using std::stoi;
 
 // RCON table
 const int rcon[10] {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36};
@@ -17,6 +20,12 @@ const std::map<char, int> hex2dec  {{'0', 0}, {'1', 1}, {'2', 2}, {'3', 3},
                                     {'4', 4}, {'5', 5}, {'6', 6}, {'7', 7},
                                     {'8', 8}, {'9', 9}, {'a', 10}, {'b', 11}, 
                                     {'c', 12}, {'d', 13}, {'e', 14}, {'f', 15}};
+
+// column mix matrix
+const int mixmatrix[4][4][2]   {{{1, 0}, {1, 1}, {0, 1}, {0, 1}},
+                                {{0, 1}, {1, 0}, {1, 1}, {0, 1}},
+                                {{0, 1}, {0, 1}, {1, 0}, {1, 1}},
+                                {{1, 1}, {0, 1}, {0, 1}, {1, 0}}};
 
 // forward-sbox
 const int sbox[16][16] {
@@ -66,16 +75,16 @@ vector<int> str2hex(const string &str) {
 }
 
 // returns all generated keys (rotate + s-box + xor)
-vector<int> key_gen(const vector<int> &key) {
+vector<vector<int>> key_gen(const vector<int> &key) {
     
     // all generated keys
     vector<vector<int>> keys(10, key);
     
     // columns of key matrix
-    vector<int> col1 = vector<int>(key.begin(), key.begin() + 4);
-    vector<int> col2 = vector<int>(key.begin() + 4, key.begin() + 8);
-    vector<int> col3 = vector<int>(key.begin() + 8, key.begin() + 12);
-    vector<int> col4 = vector<int>(key.begin() + 12, key.end());
+    vector<int> col1 {vector<int>(key.begin(), key.begin() + 4)};
+    vector<int> col2 {vector<int>(key.begin() + 4, key.begin() + 8)};
+    vector<int> col3 {vector<int>(key.begin() + 8, key.begin() + 12)};
+    vector<int> col4 {vector<int>(key.begin() + 12, key.end())};
     
     for (int i = 1; i < 10; i++) {
         
@@ -105,12 +114,12 @@ vector<int> key_gen(const vector<int> &key) {
             col2.at(j) = col2.at(j) ^ col1.at(j);
             col3.at(j) = col3.at(j) ^ col2.at(j);
             col4.at(j) = col4.at(j) ^ col3.at(j);
-            cout << std::hex << col1.at(j) << " ";
-            cout << std::hex << col2.at(j) << " ";
-            cout << std::hex << col3.at(j) << " ";
-            cout << std::hex << col4.at(j) << endl;
+            //cout << std::hex << col1.at(j) << " ";
+            //cout << std::hex << col2.at(j) << " ";
+            //cout << std::hex << col3.at(j) << " ";
+            //cout << std::hex << col4.at(j) << endl;
         }
-        std::cout << std::endl;
+        //std::cout << std::endl;
         
         // add to keys
         for (int j = 0; j < 4; j++) {
@@ -121,28 +130,106 @@ vector<int> key_gen(const vector<int> &key) {
         }
     }
     
+    return keys;
+}
+
+// returns cipher text
+vector<int> cipher_gen(const vector<int> &hex_input, const vector<vector<int>> &keys) {
+    
+    vector<int> cipher (16);
+
+    for (int j = 0; j < 16; j++) {
+        // xor
+        cipher.at(j) = hex_input.at(j) ^ keys.at(0).at(j);
+        
+        // s-box substitution
+        std::stringstream ss;
+        ss << std::hex << cipher.at(j);
+        string hex_num(ss.str());
+        if (hex_num.length() == 1)
+            hex_num.insert(0, "0");
+        cipher.at(j) = sbox[hex2dec.at(hex_num.at(0))][hex2dec.at(hex_num.at(1))];
+    }
+
+    // shift rows
+    vector<int> row2 {cipher.at(5), cipher.at(9), cipher.at(13), cipher.at(1)};
+    vector<int> row3 {cipher.at(10), cipher.at(14), cipher.at(2), cipher.at(6)};
+    vector<int> row4 {cipher.at(15), cipher.at(3), cipher.at(7), cipher.at(11)};
+    
+    for (int j = 0; j < 4; j++) {
+        cipher.at(1 + 4 * j) = row2.at(j);
+        cipher.at(2 + 4 * j) = row3.at(j);
+        cipher.at(3 + 4 * j) = row4.at(j);
+    }
+    
+    // mix columns
+    vector<int> col1 {vector<int>(cipher.begin(), cipher.begin() + 4)};
+    vector<int> col2 {vector<int>(cipher.begin() + 4, cipher.begin() + 8)};
+    vector<int> col3 {vector<int>(cipher.begin() + 8, cipher.begin() + 12)};
+    vector<int> col4 {vector<int>(cipher.begin() + 12, cipher.end())};
+    
+    string tmp1 {};
+    string tmp2 {"000000000"};
+    string tmp3 {"000000000"};
+    
+    for (int j = 0; j < 4; j++) {
+        tmp1 = std::bitset<8>(col1.at(0)).to_string();
+        tmp2 = (mixmatrix[j][0][1] == 1) ? "0" + tmp1 : "000000000";
+        tmp3 = (mixmatrix[j][0][0] == 1) ? tmp1 + "0" : "000000000";
+        for (int k = 0; k < 4; k ++) {
+            
+        }
+        
+        
+        
+        
+        
+        /*if (mixmatrix[j][0].at(1) == "1")
+            string tmp3 = tmp1.append("0");
+        cout >> tmp2 >> " " >> tmp3 >> endl;
+        string tmp1 = ""    
+        string tmp2 = ""
+        string tmp3 = ""*/
+        //cout << col1.at(0);
+    }
+    
+    /*
+    for (int j = 0; j < 4; j++) {
+        cipher.at(j) = (col1.at(0) * mixmatrix[j][0]) + (col1.at(1) * mixmatrix[j][1]) + (col1.at(2) * mixmatrix[j][2]) + (col1.at(3) * mixmatrix[j][3]);
+        cipher.at(j + 4) = (col2.at(0) * mixmatrix[j][0]) + (col2.at(1) * mixmatrix[j][1]) + (col2.at(2) * mixmatrix[j][2]) + (col2.at(3) * mixmatrix[j][3]);
+        cipher.at(j + 8) = (col3.at(0) * mixmatrix[j][0]) + (col3.at(1) * mixmatrix[j][1]) + (col3.at(2) * mixmatrix[j][2]) + (col3.at(3) * mixmatrix[j][3]);
+        cipher.at(j + 12) = (col4.at(0) * mixmatrix[j][0]) + (col4.at(1) * mixmatrix[j][1]) + (col4.at(2) * mixmatrix[j][2]) + (col4.at(3) * mixmatrix[j][3]);
+    }
+    
+    for (int j = 0; j < 16; j++) {
+        if (cipher.at(j) > 127) {
+            cipher.at(j) = cipher.at(j) ^ 283;
+        } 
+    }
+    */
+    
+
     return {0, 0};
 }
 
-
 int main() {
     // key
-    std::string key = "TEAMSCORPIAN1234";
+    string key = "TEAMSCORPIAN1234";
 
     // convert string key to hexidecimal
-    std::vector<int> hex_key = str2hex(key);
+    vector<int> hex_key = str2hex(key);
     
     // key generation
-    std::vector<int> hex_key1 = key_gen(hex_key);
-    
+    vector<vector<int>> keys = key_gen(hex_key);
     
     // input
-    std::string input = "Two One Nine Two";
+    string input = "Two One Nine Two";
     
     // convert string input to hexidecimal
-    std::vector<int> hex_input = str2hex(input);
+    vector<int> hex_input = str2hex(input);
 
- 
+    // AES Encryption
+    vector<int> cipher_input = cipher_gen(hex_input, keys);
 
     return 0;
 }
