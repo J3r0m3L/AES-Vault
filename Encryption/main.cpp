@@ -10,7 +10,6 @@ using std::cout;
 using std::endl;
 using std::vector;
 using std::string;
-using std::stoi;
 
 // RCON table
 const int rcon[10] {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36};
@@ -66,7 +65,7 @@ const std::map<int, char> printable_chars  {{0x20, ' '}, {0x21, '!'}, {0x22, '"'
                                             {0x7a, 'z'}, {0x7b, '{'}, {0x7c, '|'}, {0x7d, '}'}, {0x7e, '~'}};
 
 
-// returns a hexidecimal vector
+// returns a hexadecimal vector
 vector<int> str2hex(const string &str) {
     vector<int> hex (0);
     for (auto &ch: str)
@@ -78,7 +77,7 @@ vector<int> str2hex(const string &str) {
 vector<vector<int>> key_gen(const vector<int> &key) {
     
     // all generated keys
-    vector<vector<int>> keys(10, key);
+    vector<vector<int>> keys(11, key);
     
     // columns of key matrix
     vector<int> col1 {vector<int>(key.begin(), key.begin() + 4)};
@@ -86,7 +85,7 @@ vector<vector<int>> key_gen(const vector<int> &key) {
     vector<int> col3 {vector<int>(key.begin() + 8, key.begin() + 12)};
     vector<int> col4 {vector<int>(key.begin() + 12, key.end())};
     
-    for (int i = 1; i < 10; i++) {
+    for (int i = 1; i < 11; i++) {
         
         // rotate
         vector<int> tmp = vector<int>(col4.begin() + 1, col4.end());
@@ -137,12 +136,89 @@ vector<vector<int>> key_gen(const vector<int> &key) {
 vector<int> cipher_gen(const vector<int> &hex_input, const vector<vector<int>> &keys) {
     
     vector<int> cipher (16);
-
+    
+    // --initial round-- (xor)
     for (int j = 0; j < 16; j++) {
-        // xor
         cipher.at(j) = hex_input.at(j) ^ keys.at(0).at(j);
+    }
+    
+    // --main rounds--
+    for (int i = 1; i < 10; i++) {
         
-        // s-box substitution
+        // s-box substition
+        for (int j = 0; j < 16; j++) {
+            std::stringstream ss;
+            ss << std::hex << cipher.at(j);
+            string hex_num(ss.str());
+            if (hex_num.length() == 1)
+                hex_num.insert(0, "0");
+            cipher.at(j) = sbox[hex2dec.at(hex_num.at(0))][hex2dec.at(hex_num.at(1))];
+        }
+        
+        // shift rows
+        vector<int> row2 {cipher.at(5), cipher.at(9), cipher.at(13), cipher.at(1)};
+        vector<int> row3 {cipher.at(10), cipher.at(14), cipher.at(2), cipher.at(6)};
+        vector<int> row4 {cipher.at(15), cipher.at(3), cipher.at(7), cipher.at(11)};
+    
+        for (int j = 0; j < 4; j++) {
+            cipher.at(1 + 4 * j) = row2.at(j);
+            cipher.at(2 + 4 * j) = row3.at(j);
+            cipher.at(3 + 4 * j) = row4.at(j);
+        }
+        
+        // mix columns
+        vector<int> col1 {vector<int>(cipher.begin(), cipher.begin() + 4)};
+        vector<int> col2 {vector<int>(cipher.begin() + 4, cipher.begin() + 8)};
+        vector<int> col3 {vector<int>(cipher.begin() + 8, cipher.begin() + 12)};
+        vector<int> col4 {vector<int>(cipher.begin() + 12, cipher.end())};
+        
+        int tmp1 {};
+        int tmp2 {};
+        vector<int> tmp3 (4);
+        
+        for (int j = 0; j < 4; j++) {
+            for (int k = 0; k < 4; k++) {
+                tmp1 = (mixmatrix[j][k][0] == 1) ? col1.at(k) << 1 : 0;
+                tmp2 = (mixmatrix[j][k][1] == 1) ? col1.at(k) : 0;
+                tmp3.at(k) = tmp1 ^ tmp2;
+            }
+            cipher.at(j) = tmp3.at(0) ^ tmp3.at(1) ^ tmp3.at(2) ^ tmp3.at(3);
+            
+            for (int k = 0; k < 4; k++) {
+                tmp1 = (mixmatrix[j][k][0] == 1) ? col2.at(k) << 1 : 0;
+                tmp2 = (mixmatrix[j][k][1] == 1) ? col2.at(k) : 0;
+                tmp3.at(k) = tmp1 ^ tmp2;
+            }
+            cipher.at(j + 4) = tmp3.at(0) ^ tmp3.at(1) ^ tmp3.at(2) ^ tmp3.at(3);
+            
+            for (int k = 0; k < 4; k++) {
+                tmp1 = (mixmatrix[j][k][0] == 1) ? col3.at(k) << 1 : 0;
+                tmp2 = (mixmatrix[j][k][1] == 1) ? col3.at(k) : 0;
+                tmp3.at(k) = tmp1 ^ tmp2;
+            }
+            cipher.at(j + 8) = tmp3.at(0) ^ tmp3.at(1) ^ tmp3.at(2) ^ tmp3.at(3);
+            
+            for (int k = 0; k < 4; k++) {
+                tmp1 = (mixmatrix[j][k][0] == 1) ? col4.at(k) << 1 : 0;
+                tmp2 = (mixmatrix[j][k][1] == 1) ? col4.at(k) : 0;
+                tmp3.at(k) = tmp1 ^ tmp2;
+            }
+            cipher.at(j + 8) = tmp3.at(0) ^ tmp3.at(1) ^ tmp3.at(2) ^ tmp3.at(3);
+        }
+        for (int j = 0; j < 16; j++) {
+            cipher.at(j) = (cipher.at(j) > 255) ? cipher.at(j) ^ 283 : cipher.at(j);
+        }
+        
+        // xor
+        for (int j = 0; j < 16; j++) {
+            cipher.at(j) = hex_input.at(j) ^ keys.at(i).at(j);
+        }
+    }
+    
+    // --last round--
+    
+    // s-box substition
+    for (int j = 0; j < 16; j++) {
         std::stringstream ss;
         ss << std::hex << cipher.at(j);
         string hex_num(ss.str());
@@ -150,66 +226,24 @@ vector<int> cipher_gen(const vector<int> &hex_input, const vector<vector<int>> &
             hex_num.insert(0, "0");
         cipher.at(j) = sbox[hex2dec.at(hex_num.at(0))][hex2dec.at(hex_num.at(1))];
     }
-
+    
     // shift rows
     vector<int> row2 {cipher.at(5), cipher.at(9), cipher.at(13), cipher.at(1)};
     vector<int> row3 {cipher.at(10), cipher.at(14), cipher.at(2), cipher.at(6)};
     vector<int> row4 {cipher.at(15), cipher.at(3), cipher.at(7), cipher.at(11)};
-    
+
     for (int j = 0; j < 4; j++) {
         cipher.at(1 + 4 * j) = row2.at(j);
         cipher.at(2 + 4 * j) = row3.at(j);
         cipher.at(3 + 4 * j) = row4.at(j);
     }
     
-    // mix columns
-    vector<int> col1 {vector<int>(cipher.begin(), cipher.begin() + 4)};
-    vector<int> col2 {vector<int>(cipher.begin() + 4, cipher.begin() + 8)};
-    vector<int> col3 {vector<int>(cipher.begin() + 8, cipher.begin() + 12)};
-    vector<int> col4 {vector<int>(cipher.begin() + 12, cipher.end())};
-    
-    string tmp1 {};
-    string tmp2 {"000000000"};
-    string tmp3 {"000000000"};
-    
-    for (int j = 0; j < 4; j++) {
-        tmp1 = std::bitset<8>(col1.at(0)).to_string();
-        tmp2 = (mixmatrix[j][0][1] == 1) ? "0" + tmp1 : "000000000";
-        tmp3 = (mixmatrix[j][0][0] == 1) ? tmp1 + "0" : "000000000";
-        for (int k = 0; k < 4; k ++) {
-            
-        }
-        
-        
-        
-        
-        
-        /*if (mixmatrix[j][0].at(1) == "1")
-            string tmp3 = tmp1.append("0");
-        cout >> tmp2 >> " " >> tmp3 >> endl;
-        string tmp1 = ""    
-        string tmp2 = ""
-        string tmp3 = ""*/
-        //cout << col1.at(0);
-    }
-    
-    /*
-    for (int j = 0; j < 4; j++) {
-        cipher.at(j) = (col1.at(0) * mixmatrix[j][0]) + (col1.at(1) * mixmatrix[j][1]) + (col1.at(2) * mixmatrix[j][2]) + (col1.at(3) * mixmatrix[j][3]);
-        cipher.at(j + 4) = (col2.at(0) * mixmatrix[j][0]) + (col2.at(1) * mixmatrix[j][1]) + (col2.at(2) * mixmatrix[j][2]) + (col2.at(3) * mixmatrix[j][3]);
-        cipher.at(j + 8) = (col3.at(0) * mixmatrix[j][0]) + (col3.at(1) * mixmatrix[j][1]) + (col3.at(2) * mixmatrix[j][2]) + (col3.at(3) * mixmatrix[j][3]);
-        cipher.at(j + 12) = (col4.at(0) * mixmatrix[j][0]) + (col4.at(1) * mixmatrix[j][1]) + (col4.at(2) * mixmatrix[j][2]) + (col4.at(3) * mixmatrix[j][3]);
-    }
-    
+    // xor
     for (int j = 0; j < 16; j++) {
-        if (cipher.at(j) > 127) {
-            cipher.at(j) = cipher.at(j) ^ 283;
-        } 
+        cipher.at(j) = hex_input.at(j) ^ keys.at(10).at(j);
     }
-    */
-    
 
-    return {0, 0};
+    return cipher;
 }
 
 int main() {
@@ -230,6 +264,7 @@ int main() {
 
     // AES Encryption
     vector<int> cipher_input = cipher_gen(hex_input, keys);
+    
 
     return 0;
 }
