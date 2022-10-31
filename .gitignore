@@ -24,3 +24,6 @@ Decryptor/Debug/main.cpp.o
 Decryptor/Debug/Decryptor.exe
 Decryptor/Debug/.d
 Decryptor/compile_flags.txt
+Encryption/Debug/EncryptorAndDecryptor.exe
+Encryption/EncryptorAndDecryptor.mk
+Encryption/EncryptorAndDecryptor.txt
