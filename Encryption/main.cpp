@@ -283,15 +283,135 @@ vector<int> cipher_decrypt(const vector<int> &cipher_input, const vector<vector<
     
     vector<int> hex_output (16);
     
-    // --initial round-- (xor)
-    for (int j = 0; j < 16; j++) {
+    // initialize column vectors, row vectors, and tmp variables
+    vector<int> row2 (4);
+    vector<int> row3 (4);
+    vector<int> row4 (4);
+    
+    vector<int> col1 (4);
+    vector<int> col2 (4);
+    vector<int> col3 (4);
+    vector<int> col4 (4);
+    
+    int tmp1 {};
+    int tmp2 {};
+    int tmp3 {};
+    int tmp4 {};
+    vector<int> tmp5 (4);
+    int incrementer {};
+    
+    // --initial round--
+    
+    // xor
+    for (int j = 0; j < 16; j++)
         hex_output.at(j) = cipher_input.at(j) ^ keys.at(10).at(j);
+        
+    // shift rows
+    row2 = {hex_output.at(13), hex_output.at(1), hex_output.at(5), hex_output.at(9)};
+    row3 = {hex_output.at(10), hex_output.at(14), hex_output.at(2), hex_output.at(6)};
+    row4 = {hex_output.at(7), hex_output.at(11), hex_output.at(15), hex_output.at(3)};
+    for (int j = 0; j < 4; j++) {
+        hex_output.at(1 + 4 * j) = row2.at(j);
+        hex_output.at(2 + 4 * j) = row3.at(j);
+        hex_output.at(3 + 4 * j) = row4.at(j);
+    }
+    
+    // inverse s-box substitution
+    for (int j = 0; j < 16; j++) {
+        std::stringstream ss;
+        ss << std::hex << hex_output.at(j);
+        string hex_num(ss.str());
+        if (hex_num.length() == 1)
+            hex_num.insert(0, "0");
+        hex_output.at(j) = invsbox[hex2dec.at(hex_num.at(0))][hex2dec.at(hex_num.at(1))];
     }
     
     // --main rounds--
-    for (int i = 9; i > -1; i--) {
+    for (int i = 9; i > 0; i--) {
         
-        // s-box substition
+        // xor
+        for (int j = 0; j < 16; j++)
+            hex_output.at(j) = hex_output.at(j) ^ keys.at(i).at(j);
+        
+        // mix columns
+        col1 = vector<int>(hex_output.begin(), hex_output.begin() + 4);
+        col2 = vector<int>(hex_output.begin() + 4, hex_output.begin() + 8);
+        col3 = vector<int>(hex_output.begin() + 8, hex_output.begin() + 12);
+        col4 = vector<int>(hex_output.begin() + 12, hex_output.end());
+        
+        for (int j = 0; j < 4; j++) {
+            for (int k = 0; k < 4; k++) {
+                tmp1 = (revmixmatrix[j][k][3] == 1) ? col1.at(k) : 0;
+                incrementer = col1.at(k) << 1;
+                incrementer = (incrementer > 255) ? incrementer ^ 283 : incrementer;
+                tmp2 = (revmixmatrix[j][k][2] == 1) ? incrementer : 0;
+                incrementer = incrementer << 1;
+                incrementer = (incrementer > 255) ? incrementer ^ 283 : incrementer;
+                tmp3 = (revmixmatrix[j][k][1] == 1) ? incrementer : 0; 
+                incrementer = incrementer << 1;
+                incrementer = (incrementer > 255) ? incrementer ^ 283 : incrementer;
+                tmp4 = (revmixmatrix[j][k][0] == 1) ? incrementer : 0; 
+                tmp5.at(k) = tmp1 ^ tmp2 ^ tmp3 ^ tmp4;
+            }
+            hex_output.at(j) = tmp5.at(0) ^ tmp5.at(1) ^ tmp5.at(2) ^ tmp5.at(3);
+            
+            for (int k = 0; k < 4; k++) {
+                tmp1 = (revmixmatrix[j][k][3] == 1) ? col2.at(k) : 0;
+                incrementer = col2.at(k) << 1;
+                incrementer = (incrementer > 255) ? incrementer ^ 283 : incrementer;
+                tmp2 = (revmixmatrix[j][k][2] == 1) ? incrementer : 0;
+                incrementer = incrementer << 1;
+                incrementer = (incrementer > 255) ? incrementer ^ 283 : incrementer;
+                tmp3 = (revmixmatrix[j][k][1] == 1) ? incrementer : 0; 
+                incrementer = incrementer << 1;
+                incrementer = (incrementer > 255) ? incrementer ^ 283 : incrementer;
+                tmp4 = (revmixmatrix[j][k][0] == 1) ? incrementer : 0; 
+                tmp5.at(k) = tmp1 ^ tmp2 ^ tmp3 ^ tmp4;
+            }
+            hex_output.at(j + 4) = tmp5.at(0) ^ tmp5.at(1) ^ tmp5.at(2) ^ tmp5.at(3);
+            
+            for (int k = 0; k < 4; k++) {
+                tmp1 = (revmixmatrix[j][k][3] == 1) ? col3.at(k) : 0;
+                incrementer = col3.at(k) << 1;
+                incrementer = (incrementer > 255) ? incrementer ^ 283 : incrementer;
+                tmp2 = (revmixmatrix[j][k][2] == 1) ? incrementer : 0;
+                incrementer = incrementer << 1;
+                incrementer = (incrementer > 255) ? incrementer ^ 283 : incrementer;
+                tmp3 = (revmixmatrix[j][k][1] == 1) ? incrementer : 0; 
+                incrementer = incrementer << 1;
+                incrementer = (incrementer > 255) ? incrementer ^ 283 : incrementer;
+                tmp4 = (revmixmatrix[j][k][0] == 1) ? incrementer : 0;
+                tmp5.at(k) = tmp1 ^ tmp2 ^ tmp3 ^ tmp4;
+            }
+            hex_output.at(j + 8) = tmp5.at(0) ^ tmp5.at(1) ^ tmp5.at(2) ^ tmp5.at(3);
+            
+            for (int k = 0; k < 4; k++) {
+                tmp1 = (revmixmatrix[j][k][3] == 1) ? col4.at(k) : 0;
+                incrementer = col4.at(k) << 1;
+                incrementer = (incrementer > 255) ? incrementer ^ 283 : incrementer;
+                tmp2 = (revmixmatrix[j][k][2] == 1) ? incrementer : 0;
+                incrementer = incrementer << 1;
+                incrementer = (incrementer > 255) ? incrementer ^ 283 : incrementer;
+                tmp3 = (revmixmatrix[j][k][1] == 1) ? incrementer : 0; 
+                incrementer = incrementer << 1;
+                incrementer = (incrementer > 255) ? incrementer ^ 283 : incrementer;
+                tmp4 = (revmixmatrix[j][k][0] == 1) ? incrementer : 0;
+                tmp5.at(k) = tmp1 ^ tmp2 ^ tmp3 ^ tmp4;
+            }
+            hex_output.at(j + 12) = tmp5.at(0) ^ tmp5.at(1) ^ tmp5.at(2) ^ tmp5.at(3);
+        }
+
+        // shift rows
+        row2 = {hex_output.at(13), hex_output.at(1), hex_output.at(5), hex_output.at(9)};
+        row3 = {hex_output.at(10), hex_output.at(14), hex_output.at(2), hex_output.at(6)};
+        row4 = {hex_output.at(7), hex_output.at(11), hex_output.at(15), hex_output.at(3)};
+        for (int j = 0; j < 4; j++) {
+            hex_output.at(1 + 4 * j) = row2.at(j);
+            hex_output.at(2 + 4 * j) = row3.at(j);
+            hex_output.at(3 + 4 * j) = row4.at(j);
+        }
+        
+        // inverse s-box substitution
         for (int j = 0; j < 16; j++) {
             std::stringstream ss;
             ss << std::hex << hex_output.at(j);
@@ -300,76 +420,11 @@ vector<int> cipher_decrypt(const vector<int> &cipher_input, const vector<vector<
                 hex_num.insert(0, "0");
             hex_output.at(j) = invsbox[hex2dec.at(hex_num.at(0))][hex2dec.at(hex_num.at(1))];
         }
-        
-        // shift rows
-        vector<int> row2 {hex_output.at(13), hex_output.at(1), hex_output.at(5), hex_output.at(9)};
-        vector<int> row3 {hex_output.at(10), hex_output.at(14), hex_output.at(2), hex_output.at(6)};
-        vector<int> row4 {hex_output.at(7), hex_output.at(11), hex_output.at(15), hex_output.at(3)};
-
-        for (int j = 0; j < 4; j++) {
-            hex_output.at(1 + 4 * j) = row2.at(j);
-            hex_output.at(2 + 4 * j) = row3.at(j);
-            hex_output.at(3 + 4 * j) = row4.at(j);
-        }
-        
-        // mix columns
-        vector<int> col1 {vector<int>(hex_output.begin(), hex_output.begin() + 4)};
-        vector<int> col2 {vector<int>(hex_output.begin() + 4, hex_output.begin() + 8)};
-        vector<int> col3 {vector<int>(hex_output.begin() + 8, hex_output.begin() + 12)};
-        vector<int> col4 {vector<int>(hex_output.begin() + 12, hex_output.end())};
-        
-        int tmp1 {};
-        int tmp2 {};
-        int tmp3 {};
-        int tmp4 {};
-        vector<int> tmp5 (4);
-        
-        for (int j = 0; j < 4; j++) {
-            for (int k = 0; k < 4; k++) {
-                tmp1 = (revmixmatrix[j][k][0] == 1) ? col1.at(k) << 3 : 0;
-                tmp2 = (revmixmatrix[j][k][1] == 1) ? col1.at(k) << 2 : 0;
-                tmp3 = (revmixmatrix[j][k][2] == 1) ? col1.at(k) << 1 : 0;
-                tmp4 = (revmixmatrix[j][k][3] == 1) ? col1.at(k): 0;
-                tmp5.at(k) = tmp1 ^ tmp2 ^ tmp3 ^ tmp4;
-            }
-            hex_output.at(j) = tmp5.at(0) ^ tmp5.at(1) ^ tmp5.at(2) ^ tmp5.at(3);
-            
-            for (int k = 0; k < 4; k++) {
-                tmp1 = (revmixmatrix[j][k][0] == 1) ? col2.at(k) << 3 : 0;
-                tmp2 = (revmixmatrix[j][k][1] == 1) ? col2.at(k) << 2 : 0;
-                tmp3 = (revmixmatrix[j][k][2] == 1) ? col2.at(k) << 1 : 0;
-                tmp4 = (revmixmatrix[j][k][3] == 1) ? col2.at(k) : 0;
-                tmp5.at(k) = tmp1 ^ tmp2 ^ tmp3 ^ tmp4;
-            }
-            hex_output.at(j + 4) = tmp5.at(0) ^ tmp5.at(1) ^ tmp5.at(2) ^ tmp5.at(3);
-            
-            for (int k = 0; k < 4; k++) {
-                tmp1 = (revmixmatrix[j][k][0] == 1) ? col3.at(k) << 3 : 0;
-                tmp2 = (revmixmatrix[j][k][1] == 1) ? col3.at(k) << 2 : 0;
-                tmp3 = (revmixmatrix[j][k][2] == 1) ? col3.at(k) << 1 : 0;
-                tmp4 = (revmixmatrix[j][k][3] == 1) ? col3.at(k) : 0;
-                tmp5.at(k) = tmp1 ^ tmp2 ^ tmp3 ^ tmp4;
-            }
-            hex_output.at(j + 8) = tmp5.at(0) ^ tmp5.at(1) ^ tmp5.at(2) ^ tmp5.at(3);
-            
-            for (int k = 0; k < 4; k++) {
-                tmp1 = (revmixmatrix[j][k][0] == 1) ? col4.at(k) << 3 : 0;
-                tmp2 = (revmixmatrix[j][k][1] == 1) ? col4.at(k) << 2 : 0;
-                tmp3 = (revmixmatrix[j][k][2] == 1) ? col4.at(k) << 1 : 0;
-                tmp4 = (revmixmatrix[j][k][3] == 1) ? col4.at(k) : 0;
-                tmp5.at(k) = tmp1 ^ tmp2 ^ tmp3 ^ tmp4;
-            }
-            hex_output.at(j + 12) = tmp5.at(0) ^ tmp5.at(1) ^ tmp5.at(2) ^ tmp5.at(3);
-        }
-        for (int j = 0; j < 16; j++) {
-            hex_output.at(j) = (hex_output.at(j) > 255) ? hex_output.at(j) ^ 283 : hex_output.at(j);
-        }
-        
-        // xor
-        for (int j = 0; j < 16; j++) {
-            hex_output.at(j) = hex_output.at(j) ^ keys.at(i).at(j);
-        }
     }
+
+    // last round
+    for (int j = 0; j < 16; j++)
+        hex_output.at(j) = hex_output.at(j) ^ keys.at(0).at(j);
     
     return hex_output;
 }
@@ -389,6 +444,10 @@ int main() {
     
     // convert string input to hexidecimal --great--
     vector<int> hex_input = str2hex(input);
+    for (int i = 0; i < 16; i++) {
+        cout << std::hex << hex_input.at(i) << " ";
+    }
+    cout << endl;
 
     // AES Encryption --great--
     vector<int> cipher_input = cipher_encrypt(hex_input, keys);
@@ -397,14 +456,14 @@ int main() {
     for (int i = 0; i < 16; i++) {
         cout << std::hex << cipher_input.at(i) << " ";
     }
+    cout << endl;
     
     // AES Decryption --need to check--
     vector<int> hex_output = cipher_decrypt(cipher_input, keys);
     
     // print out decryption
-    cout << endl;
     for (int i = 0; i < 16; i++) {
-        cout << hex_output.at(i) << " ";
+        cout << std::hex << hex_output.at(i) << " ";
     }
 
     return 0;
