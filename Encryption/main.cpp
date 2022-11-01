@@ -99,16 +99,23 @@ vector<vector<int>> key_gen(const vector<int> &key) {
     // all generated keys
     vector<vector<int>> keys(11, key);
     
-    // columns of key matrix
-    vector<int> col1 {vector<int>(key.begin(), key.begin() + 4)};
-    vector<int> col2 {vector<int>(key.begin() + 4, key.begin() + 8)};
-    vector<int> col3 {vector<int>(key.begin() + 8, key.begin() + 12)};
-    vector<int> col4 {vector<int>(key.begin() + 12, key.end())};
+    // initialize column vectors
+    vector<int> col1 (4);
+    vector<int> col2 (4);
+    vector<int> col3 (4);
+    vector<int> col4 (4);
+    vector<int> tmp (4);
     
-    for (int i = 1; i < 11; i++) {
+    for (int i = 0; i < 10; i++) {
+    
+        // split into columns
+        col1 = vector<int>(keys.at(i).begin(), keys.at(i).begin() + 4);
+        col2 = vector<int>(keys.at(i).begin() + 4, keys.at(i).begin() + 8);
+        col3 = vector<int>(keys.at(i).begin() + 8, keys.at(i).begin() + 12);
+        col4 = vector<int>(keys.at(i).begin() + 12, keys.at(i).end());
         
         // rotate
-        vector<int> tmp = vector<int>(col4.begin() + 1, col4.end());
+        tmp = vector<int>(col4.begin() + 1, col4.end());
         tmp.push_back(col4.at(0));
         
         // s-box substitution
@@ -125,7 +132,7 @@ vector<vector<int>> key_gen(const vector<int> &key) {
         bool toggle {true};
         for (int j= 0; j < 4; j++) {
             if (toggle == true) {
-                col1.at(j) = col1.at(j) ^ tmp.at(j) ^ rcon[i - 1];
+                col1.at(j) = col1.at(j) ^ tmp.at(j) ^ rcon[i];
                 toggle = false;
             } else {
                 col1.at(j) = col1.at(j) ^ tmp.at(j);
@@ -138,14 +145,14 @@ vector<vector<int>> key_gen(const vector<int> &key) {
             //cout << std::hex << col3.at(j) << " ";
             //cout << std::hex << col4.at(j) << endl;
         }
-        //std::cout << std::endl;
+        //cout << endl;
         
         // add to keys
         for (int j = 0; j < 4; j++) {
-            keys.at(i).at(j) = col1.at(j);
-            keys.at(i).at(j + 4) = col1.at(j);
-            keys.at(i).at(j + 8) = col1.at(j);
-            keys.at(i).at(j + 12) = col1.at(j);
+            keys.at(i + 1).at(j) = col1.at(j);
+            keys.at(i + 1).at(j + 4) = col2.at(j);
+            keys.at(i + 1).at(j + 8) = col3.at(j);
+            keys.at(i + 1).at(j + 12) = col4.at(j);
         }
     }
     
@@ -157,10 +164,21 @@ vector<int> cipher_encrypt(const vector<int> &hex_input, const vector<vector<int
     
     vector<int> cipher (16);
     
-    // --initial round-- (xor)
-    for (int j = 0; j < 16; j++) {
+    // initialize column vectors, row vectors, and tmp variables
+    vector<int> row2 (4);
+    vector<int> row3 (4);
+    vector<int> row4 (4);
+    vector<int> col1 (4);
+    vector<int> col2 (4);
+    vector<int> col3 (4);
+    vector<int> col4 (4);
+    int tmp1 {};
+    int tmp2 {};
+    vector<int> tmp3 (4);
+    
+    // --initial round--
+    for (int j = 0; j < 16; j++)
         cipher.at(j) = hex_input.at(j) ^ keys.at(0).at(j);
-    }
     
     // --main rounds--
     for (int i = 1; i < 10; i++) {
@@ -176,9 +194,9 @@ vector<int> cipher_encrypt(const vector<int> &hex_input, const vector<vector<int
         }
         
         // shift rows
-        vector<int> row2 {cipher.at(5), cipher.at(9), cipher.at(13), cipher.at(1)};
-        vector<int> row3 {cipher.at(10), cipher.at(14), cipher.at(2), cipher.at(6)};
-        vector<int> row4 {cipher.at(15), cipher.at(3), cipher.at(7), cipher.at(11)};
+        row2 = {cipher.at(5), cipher.at(9), cipher.at(13), cipher.at(1)};
+        row3 = {cipher.at(10), cipher.at(14), cipher.at(2), cipher.at(6)};
+        row4 = {cipher.at(15), cipher.at(3), cipher.at(7), cipher.at(11)};
     
         for (int j = 0; j < 4; j++) {
             cipher.at(1 + 4 * j) = row2.at(j);
@@ -187,14 +205,10 @@ vector<int> cipher_encrypt(const vector<int> &hex_input, const vector<vector<int
         }
         
         // mix columns
-        vector<int> col1 {vector<int>(cipher.begin(), cipher.begin() + 4)};
-        vector<int> col2 {vector<int>(cipher.begin() + 4, cipher.begin() + 8)};
-        vector<int> col3 {vector<int>(cipher.begin() + 8, cipher.begin() + 12)};
-        vector<int> col4 {vector<int>(cipher.begin() + 12, cipher.end())};
-        
-        int tmp1 {};
-        int tmp2 {};
-        vector<int> tmp3 (4);
+        col1 = vector<int>(cipher.begin(), cipher.begin() + 4);
+        col2 = vector<int>(cipher.begin() + 4, cipher.begin() + 8);
+        col3 = vector<int>(cipher.begin() + 8, cipher.begin() + 12);
+        col4 = vector<int>(cipher.begin() + 12, cipher.end());
         
         for (int j = 0; j < 4; j++) {
             for (int k = 0; k < 4; k++) {
@@ -225,9 +239,8 @@ vector<int> cipher_encrypt(const vector<int> &hex_input, const vector<vector<int
             }
             cipher.at(j + 12) = tmp3.at(0) ^ tmp3.at(1) ^ tmp3.at(2) ^ tmp3.at(3);
         }
-        for (int j = 0; j < 16; j++) {
+        for (int j = 0; j < 16; j++)
             cipher.at(j) = (cipher.at(j) > 255) ? cipher.at(j) ^ 283 : cipher.at(j);
-        }
         
         // xor
         for (int j = 0; j < 16; j++) {
@@ -248,9 +261,9 @@ vector<int> cipher_encrypt(const vector<int> &hex_input, const vector<vector<int
     }
     
     // shift rows
-    vector<int> row2 {cipher.at(5), cipher.at(9), cipher.at(13), cipher.at(1)};
-    vector<int> row3 {cipher.at(10), cipher.at(14), cipher.at(2), cipher.at(6)};
-    vector<int> row4 {cipher.at(15), cipher.at(3), cipher.at(7), cipher.at(11)};
+    row2 = {cipher.at(5), cipher.at(9), cipher.at(13), cipher.at(1)};
+    row3 = {cipher.at(10), cipher.at(14), cipher.at(2), cipher.at(6)};
+    row4 = {cipher.at(15), cipher.at(3), cipher.at(7), cipher.at(11)};
 
     for (int j = 0; j < 4; j++) {
         cipher.at(1 + 4 * j) = row2.at(j);
@@ -259,9 +272,8 @@ vector<int> cipher_encrypt(const vector<int> &hex_input, const vector<vector<int
     }
     
     // xor
-    for (int j = 0; j < 16; j++) {
+    for (int j = 0; j < 16; j++)
         cipher.at(j) = cipher.at(j) ^ keys.at(10).at(j);
-    }
 
     return cipher;
 }
@@ -366,19 +378,19 @@ int main() {
     // key
     string key = "TEAMSCORPIAN1234";
 
-    // convert string key to hexidecimal
+    // convert string key to hexidecimal --great--
     vector<int> hex_key = str2hex(key);
     
-    // key generation
+    // key generation --great--
     vector<vector<int>> keys = key_gen(hex_key);
     
     // input
     string input = "Two One Nine Two";
     
-    // convert string input to hexidecimal
+    // convert string input to hexidecimal --great--
     vector<int> hex_input = str2hex(input);
 
-    // AES Encryption
+    // AES Encryption --great--
     vector<int> cipher_input = cipher_encrypt(hex_input, keys);
     
     // print out cipher
@@ -386,7 +398,7 @@ int main() {
         cout << std::hex << cipher_input.at(i) << " ";
     }
     
-    // AES Decryption
+    // AES Decryption --need to check--
     vector<int> hex_output = cipher_decrypt(cipher_input, keys);
     
     // print out decryption
