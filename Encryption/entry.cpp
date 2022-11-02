@@ -11,14 +11,16 @@ using std::vector;
 
 class Entry {
 private:
+    int index;
     string organization;
     string email;
     string username;
     string password;
 public:
-    Entry(string org, string em, string user, string passwd, vector<vector<int>> keys);
+    Entry(int id, string org, string em, string user, string passwd, vector<vector<int>> keys, bool encrypted);
     
-    // later change to copy to clipboard
+    void store();
+    void remove();
     void copy_email(vector<vector<int>> keys);
     void copy_username(vector<vector<int>> keys);
     void copy_password(vector<vector<int>> keys);
@@ -27,11 +29,23 @@ public:
 };
 
 // Constructor
-Entry::Entry(string org, string em, string user, string passwd, vector<vector<int>> keys)
-    :   organization{org}, email{encrypt(em, keys)}, username{encrypt(user, keys)}, password{encrypt(passwd, keys)} {
+Entry::Entry(int id, string org, string em, string user, string passwd, vector<vector<int>> keys, bool encrypted)
+    :   index {id},
+        organization{org}, 
+        email{(encrypted) ? em : encrypt(em, keys)},
+        username{(encrypted) ? em : encrypt(user, keys)}, 
+        password{(encrypted) ? em : encrypt(passwd, keys)} {
 };
 
 // Methods
+void Entry::store() {
+    cout << "Placeholder";
+}
+
+void Entry::remove() {
+    cout << "Placeholder";
+}
+
 void Entry::copy_email(vector<vector<int>> keys) {
     string plaintext = decrypt(email, keys);
     cout << plaintext << endl;
