@@ -15,6 +15,10 @@ private:
 public:
     Entry(string org, string em, string user, string passwd, vector<vector<int>> keys);
 
+    void copy_email(vector<vector<int>> keys);
+    void copy_username(vector<vector<int>> keys);
+    void copy_password(vector<vector<int>> keys);
+
     ~Entry();
 };
 

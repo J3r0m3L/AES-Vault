@@ -3,15 +3,17 @@
 #include "encryption.h"
 
 
-using std::cout;
 
-int temp() {
+int main() {
     // Key
     string key = "ExpectResistance";
     vector<vector<int>> keys = key_gen(str2hex(key));
     
     // Generate Entry
     Entry google {"Amazon", "JeffreyBezos@gmail.com", "Jeffrey", "Password123", keys};
+    google.copy_email(keys);
+    google.copy_username(keys);
+    google.copy_password(keys);
     
     return 0;
 }

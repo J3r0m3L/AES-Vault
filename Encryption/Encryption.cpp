@@ -3,11 +3,13 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <algorithm>
 
 using std::cout;
 using std::endl;
 using std::string;
 using std::vector;
+using std::copy;
 
 // rcon table
 const int rcon[10] {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36};
@@ -83,15 +85,33 @@ const std::map<int, char> printableChars {{32, ' '}, {33, '!'}, {34, '"'}, {35, 
                                           {110, 'n'}, {111, 'o'}, {112, 'p'}, {113, 'q'}, {114, 'r'}, {115, 's'},
                                           {116, 't'}, {117, 'u'}, {118, 'v'}, {119, 'w'}, {120, 'x'}, {121, 'y'},
                                           {122, 'z'}, {123, '{'}, {124, '|'}, {125, '}'}, {126, '~'}};
+                                          
+// Probably overload functions in future and change confusing names
 
 
-// converts strings into a hexadecimal vector
+// converts real strings into a hexadecimal vector
 vector<int> str2hex(const string &str) {
     vector<int> hex (0);
     for (auto &ch: str)
         hex.push_back(printableChars.at(ch));
     return hex;
 }
+
+// converts hexadecimal strings into a hexadecimal vector
+vector<int> translate(const string &str) {
+    vector<int> hex (int(str.length()) / 2);
+    
+    string str_slice {};
+    for (int i = 0; i < int(str.length()); i += 2) {
+        std::stringstream ss;
+        str_slice = str.substr(i, 2);
+        ss << str_slice;
+        ss >> std::hex >> hex.at(i / 2);
+    }
+        
+    return hex;
+}
+
 
 // generates 11 round keys
 vector<vector<int>> key_gen(const vector<int> &key) {
@@ -160,7 +180,7 @@ vector<vector<int>> key_gen(const vector<int> &key) {
     return keys;
 }
 
-// returns cipher text
+// encrypts hexadecimal vector into hexadecimal cipher vector
 vector<int> cipher_encrypt(const vector<int> &hex_input, const vector<vector<int>> &keys) {
     
     vector<int> cipher (16);
@@ -280,7 +300,7 @@ vector<int> cipher_encrypt(const vector<int> &hex_input, const vector<vector<int
     return cipher;
 }
 
-// returns decrypted hex text
+// decrypts hexadecimal cipher vector into hexadecimal vector
 vector<int> cipher_decrypt(const vector<int> &cipher_input, const vector<vector<int>> &keys) {
     
     vector<int> hex_output (16);
@@ -321,7 +341,7 @@ vector<int> cipher_decrypt(const vector<int> &cipher_input, const vector<vector<
     for (int j = 0; j < 16; j++) {
         std::stringstream ss;
         ss << std::hex << hex_output.at(j);
-        hex_num(ss.str());
+        hex_num = ss.str();
         if (hex_num.length() == 1)
             hex_num.insert(0, "0");
         hex_output.at(j) = inverseSbox[hex2dec.at(hex_num.at(0))][hex2dec.at(hex_num.at(1))];
@@ -416,7 +436,7 @@ vector<int> cipher_decrypt(const vector<int> &cipher_input, const vector<vector<
         for (int j = 0; j < 16; j++) {
             std::stringstream ss;
             ss << std::hex << hex_output.at(j);
-            hex_num(ss.str());
+            hex_num = ss.str();
             if (hex_num.length() == 1)
                 hex_num.insert(0, "0");
             hex_output.at(j) = inverseSbox[hex2dec.at(hex_num.at(0))][hex2dec.at(hex_num.at(1))];
@@ -434,7 +454,8 @@ vector<int> cipher_decrypt(const vector<int> &cipher_input, const vector<vector<
 string str2hex(const vector<int> &hex_input) {
     string str_output {};
     string hex_num {};
-    for (int i = 0; i < 16; i++) {
+    
+    for (int i = 0; i < int(hex_input.size()); i++) {
         std::stringstream ss;
         ss << std::hex << hex_input.at(i);
         hex_num = ss.str();
@@ -448,39 +469,62 @@ string str2hex(const vector<int> &hex_input) {
 // returns a plaintext string
 string translate(const vector<int> &hex_input) {
     string str_output {};
-    for (int i = 0; i < 16; i++)
+    for (int i = 0; i < int(hex_input.size()); i++)
         str_output.push_back(printableChars.at(hex_input.at(i)));
     return str_output;
 }
 
+// returns a padded vector
+vector<int> pad(const vector<int> &hex_input) {
+    vector<int> hex_output {hex_input};
+    int discrepency = (int(hex_input.size()) % 16 != 0) ? 16 - (int(hex_input.size()) % 16) : 0;
+    vector<int> padding (discrepency, 32);
+    hex_output.insert(hex_output.end(), padding.begin(), padding.end());
+    return hex_output;
+}
 
-int main() {
-    // key
-    string key = "TEAMSCORPIAN1234";
+// combines the all other functions to fully encrypt text
+string encrypt(const string &input, const vector<vector<int>> &keys) {
+    //convert input string to hexadecimal
+    vector<int> hex = str2hex(input);
+    
+    // pad vector input if it isn't already divisible by 16
+    hex = pad(hex);
 
-    // convert string key to hexidecimal --great--
-    vector<int> hex_key = str2hex(key);
     
-    // key generation --great--
-    vector<vector<int>> keys = key_gen(hex_key);
+    // AES Encryption
+    vector<int> hex_slice (16);
+    for (int i = 0; i < int(hex.size()); i += 16) {
+        hex_slice = vector<int>(hex.begin() + i, hex.begin() + (i + 16));
+        hex_slice = cipher_encrypt(hex_slice, keys);
+        copy(hex_slice.begin(), hex_slice.end(), hex.begin() + i);
+    }
     
-    // input
-    string input = "Two One Nine Two";
-    
-    // convert string input to hexidecimal --great--
-    vector<int> hex_input = str2hex(input);
-    cout << str2hex(hex_input) << endl;
+    // return string
+    string hex_string = str2hex(hex);
+    return hex_string;
+}
 
-    // AES Encryption --great--
-    vector<int> cipher_input = cipher_encrypt(hex_input, keys);
+// combines the all other functions to fully decrypt text
+string decrypt(const string &input, const vector<vector<int>> &keys) {
+    //convert input string to hexadecimal
+    vector<int> text = translate(input);
     
-    // cipher conversion hex to string type to print only
-    cout << str2hex(cipher_input) << endl;
+    // AES Decryption
+    vector<int> text_slice (16);
+    for (int i = 0; i < int(text.size()); i += 16) {
+        text_slice = vector<int>(text.begin() + i, text.begin() + (i + 16));
+        text_slice = cipher_decrypt(text_slice, keys);
+        copy(text_slice.begin(), text_slice.end(), text.begin() + i);
+    }
     
-    // AES Decryption --great--
-    vector<int> hex_output = cipher_decrypt(cipher_input, keys);
-    cout << str2hex(hex_output) << endl;
-    cout << translate(hex_output);
-
-    return 0;
+    // Remove Padding
+    int i = int(text.size()) - 1;
+    while (text.at(i) == 32) {
+        text.pop_back();
+        i -= 1;
+    }
+    
+    string text_string = translate(text);
+    return text_string;
 }
