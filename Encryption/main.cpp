@@ -7,7 +7,7 @@
 int main() {
     // Key
     string key = "ExpectResistance";
-    vector<vector<int>> keys = key_gen(str2hex(key));
+    vector<vector<int>> keys = key_gen(text2hexa(key));
     
     // Generate Entry
     Entry google {"Amazon", "JeffreyBezos@gmail.com", "Jeffrey", "Password123", keys};

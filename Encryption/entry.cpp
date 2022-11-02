@@ -4,6 +4,7 @@
 #include "encryption.h"
 
 using std::cout;
+using std::endl;
 using std::string;
 using std::vector;
 
@@ -33,15 +34,15 @@ Entry::Entry(string org, string em, string user, string passwd, vector<vector<in
 // Methods
 void Entry::copy_email(vector<vector<int>> keys) {
     string plaintext = decrypt(email, keys);
-    cout << plaintext;
+    cout << plaintext << endl;
 };
 void Entry::copy_username(vector<vector<int>> keys) {
     string plaintext = decrypt(username, keys);
-    cout << plaintext;
+    cout << plaintext << endl;
 };
 void Entry::copy_password(vector<vector<int>> keys) {
     string plaintext = decrypt(password, keys);
-    cout << plaintext;;
+    cout << plaintext << endl;
 }
 
 // Deconstructor

@@ -86,107 +86,107 @@ const std::map<int, char> printableChars {{32, ' '}, {33, '!'}, {34, '"'}, {35, 
                                           {116, 't'}, {117, 'u'}, {118, 'v'}, {119, 'w'}, {120, 'x'}, {121, 'y'},
                                           {122, 'z'}, {123, '{'}, {124, '|'}, {125, '}'}, {126, '~'}};
                                           
-// Probably overload functions in future and change confusing names
-
-
-// converts real strings into a hexadecimal vector
-vector<int> str2hex(const string &str) {
-    vector<int> hex (0);
-    for (auto &ch: str)
-        hex.push_back(printableChars.at(ch));
-    return hex;
+// converts plain text into a hexadecimal vector
+vector<int> text2hexa(const string &text) {
+    vector<int> hexa (0);
+    for (auto &c: text)
+        hexa.push_back(printableChars.at(c));
+    return hexa;
 }
 
-// converts hexadecimal strings into a hexadecimal vector
-vector<int> translate(const string &str) {
-    vector<int> hex (int(str.length()) / 2);
-    
-    string str_slice {};
-    for (int i = 0; i < int(str.length()); i += 2) {
+// converts hexadecimal text into a hexadecimal vector
+vector<int> hexa2hexa(const string &text) {
+    vector<int> hexa (int(text.length()) / 2);
+    string text_slice {};
+    for (int i = 0; i < int(text.length()); i += 2) {
         std::stringstream ss;
-        str_slice = str.substr(i, 2);
-        ss << str_slice;
-        ss >> std::hex >> hex.at(i / 2);
+        text_slice = text.substr(i, 2);
+        ss << text_slice;
+        ss >> std::hex >> hexa.at(i / 2);
     }
-        
-    return hex;
+    return hexa;
 }
 
+// converts a hexadecimal vector into hexadecimal text
+string hexa2hexa(const vector<int> &hexa) {
+    string text {};
+    string hexa_slice {};
+    for (int i = 0; i < int(hexa.size()); i++) {
+        std::stringstream ss;
+        ss << std::hex << hexa.at(i);
+        hexa_slice = ss.str();
+        if (hexa_slice.length() == 1)
+            hexa_slice.insert(0, "0");
+        text.append(hexa_slice);
+    }
+    return text;
+}
 
-// generates 11 round keys
+// converts a hexadecimal vector into plain text
+string hexa2text(const vector<int> &hexa) {
+    string text {};
+    for (int i = 0; i < int(hexa.size()); i++)
+        text.push_back(printableChars.at(hexa.at(i)));
+    return text;
+}
+
+// adds padding to a hexadecimal vector
+vector<int> pad(const vector<int> &hexa) {
+    vector<int> padded_hexa {hexa};
+    int difference = (int(hexa.size()) % 16 != 0) ? 16 - (int(hexa.size()) % 16) : 0;
+    vector<int> padding (difference, 32);
+    padded_hexa.insert(padded_hexa.end(), padding.begin(), padding.end());
+    return padded_hexa;
+}
+
+// generates 11 round keys from key vector
 vector<vector<int>> key_gen(const vector<int> &key) {
     
-    // all generated keys
     vector<vector<int>> keys(11, key);
-    
-    // initialize column vectors
-    vector<int> col1 (4);
-    vector<int> col2 (4);
-    vector<int> col3 (4);
-    vector<int> col4 (4);
     vector<int> tmp (4);
-    string hex_num {};
+    string hexa_slice {};
     
     for (int i = 0; i < 10; i++) {
     
-        // split into columns
-        col1 = vector<int>(keys.at(i).begin(), keys.at(i).begin() + 4);
-        col2 = vector<int>(keys.at(i).begin() + 4, keys.at(i).begin() + 8);
-        col3 = vector<int>(keys.at(i).begin() + 8, keys.at(i).begin() + 12);
-        col4 = vector<int>(keys.at(i).begin() + 12, keys.at(i).end());
-        
         // rotate
-        tmp = vector<int>(col4.begin() + 1, col4.end());
-        tmp.push_back(col4.at(0));
+        tmp = vector<int>(keys.at(i).begin() + 13, keys.at(i).end());
+        tmp.push_back(keys.at(i).at(12));
         
         // s-box substitution
         for (int j = 0; j < 4; j++) {
             std::stringstream ss;
             ss << std::hex << tmp.at(j);
-            hex_num = ss.str();
-            if (hex_num.length() == 1)
-                hex_num.insert(0, "0");
-            tmp.at(j) = forwardSbox[hex2dec.at(hex_num.at(0))][hex2dec.at(hex_num.at(1))];
+            hexa_slice = ss.str();
+            if (hexa_slice.length() == 1)
+                hexa_slice.insert(0, "0");
+            tmp.at(j) = forwardSbox[hex2dec.at(hexa_slice.at(0))][hex2dec.at(hexa_slice.at(1))];
         }
 
         // xor operation
         bool toggle {true};
         for (int j= 0; j < 4; j++) {
             if (toggle == true) {
-                col1.at(j) = col1.at(j) ^ tmp.at(j) ^ rcon[i];
+                keys.at(i + 1).at(j) = keys.at(i).at(j) ^ tmp.at(j) ^ rcon[i];
                 toggle = false;
             } else {
-                col1.at(j) = col1.at(j) ^ tmp.at(j);
+                keys.at(i + 1).at(j) = keys.at(i).at(j) ^ tmp.at(j);
             }
-            col2.at(j) = col2.at(j) ^ col1.at(j);
-            col3.at(j) = col3.at(j) ^ col2.at(j);
-            col4.at(j) = col4.at(j) ^ col3.at(j);
-            //cout << std::hex << col1.at(j) << " ";
-            //cout << std::hex << col2.at(j) << " ";
-            //cout << std::hex << col3.at(j) << " ";
-            //cout << std::hex << col4.at(j) << endl;
-        }
-        //cout << endl;
-        
-        // add to keys
-        for (int j = 0; j < 4; j++) {
-            keys.at(i + 1).at(j) = col1.at(j);
-            keys.at(i + 1).at(j + 4) = col2.at(j);
-            keys.at(i + 1).at(j + 8) = col3.at(j);
-            keys.at(i + 1).at(j + 12) = col4.at(j);
-        }
+            keys.at(i + 1).at(j + 4) = keys.at(i).at(j + 4) ^ keys.at(i + 1).at(j);
+            keys.at(i + 1).at(j + 8) = keys.at(i).at(j + 8) ^ keys.at(i + 1).at(j + 4);
+            keys.at(i + 1).at(j + 12) = keys.at(i).at(j + 12) ^ keys.at(i + 1).at(j + 8);
+        } 
     }
     
     return keys;
 }
 
-// encrypts hexadecimal vector into hexadecimal cipher vector
-vector<int> cipher_encrypt(const vector<int> &hex_input, const vector<vector<int>> &keys) {
+// converts hexadecimal vector into aes encrypted hexadecimal vector
+vector<int> aes_encrypt(const vector<int> &hexa, const vector<vector<int>> &keys) {
     
     vector<int> cipher (16);
     
     // initialize column vectors, row vectors, and tmp variables
-    string hex_num {};
+    string hexa_num {};
     vector<int> row2 (4);
     vector<int> row3 (4);
     vector<int> row4 (4);
@@ -200,7 +200,7 @@ vector<int> cipher_encrypt(const vector<int> &hex_input, const vector<vector<int
     
     // --initial round--
     for (int j = 0; j < 16; j++)
-        cipher.at(j) = hex_input.at(j) ^ keys.at(0).at(j);
+        cipher.at(j) = hexa.at(j) ^ keys.at(0).at(j);
     
     // --main rounds--
     for (int i = 1; i < 10; i++) {
@@ -209,17 +209,16 @@ vector<int> cipher_encrypt(const vector<int> &hex_input, const vector<vector<int
         for (int j = 0; j < 16; j++) {
             std::stringstream ss;
             ss << std::hex << cipher.at(j);
-            hex_num = ss.str();
-            if (hex_num.length() == 1)
-                hex_num.insert(0, "0");
-            cipher.at(j) = forwardSbox[hex2dec.at(hex_num.at(0))][hex2dec.at(hex_num.at(1))];
+            hexa_num = ss.str();
+            if (hexa_num.length() == 1)
+                hexa_num.insert(0, "0");
+            cipher.at(j) = forwardSbox[hex2dec.at(hexa_num.at(0))][hex2dec.at(hexa_num.at(1))];
         }
         
         // shift rows
         row2 = {cipher.at(5), cipher.at(9), cipher.at(13), cipher.at(1)};
         row3 = {cipher.at(10), cipher.at(14), cipher.at(2), cipher.at(6)};
         row4 = {cipher.at(15), cipher.at(3), cipher.at(7), cipher.at(11)};
-    
         for (int j = 0; j < 4; j++) {
             cipher.at(1 + 4 * j) = row2.at(j);
             cipher.at(2 + 4 * j) = row3.at(j);
@@ -276,17 +275,16 @@ vector<int> cipher_encrypt(const vector<int> &hex_input, const vector<vector<int
     for (int j = 0; j < 16; j++) {
         std::stringstream ss;
         ss << std::hex << cipher.at(j);
-        hex_num = ss.str();
-        if (hex_num.length() == 1)
-            hex_num.insert(0, "0");
-        cipher.at(j) = forwardSbox[hex2dec.at(hex_num.at(0))][hex2dec.at(hex_num.at(1))];
+        hexa_num = ss.str();
+        if (hexa_num.length() == 1)
+            hexa_num.insert(0, "0");
+        cipher.at(j) = forwardSbox[hex2dec.at(hexa_num.at(0))][hex2dec.at(hexa_num.at(1))];
     }
     
     // shift rows
     row2 = {cipher.at(5), cipher.at(9), cipher.at(13), cipher.at(1)};
     row3 = {cipher.at(10), cipher.at(14), cipher.at(2), cipher.at(6)};
     row4 = {cipher.at(15), cipher.at(3), cipher.at(7), cipher.at(11)};
-
     for (int j = 0; j < 4; j++) {
         cipher.at(1 + 4 * j) = row2.at(j);
         cipher.at(2 + 4 * j) = row3.at(j);
@@ -300,10 +298,10 @@ vector<int> cipher_encrypt(const vector<int> &hex_input, const vector<vector<int
     return cipher;
 }
 
-// decrypts hexadecimal cipher vector into hexadecimal vector
-vector<int> cipher_decrypt(const vector<int> &cipher_input, const vector<vector<int>> &keys) {
+// converts aes encrypted hexadecimal vector into hexadecimal vector
+vector<int> aes_decrypt(const vector<int> &cipher, const vector<vector<int>> &keys) {
     
-    vector<int> hex_output (16);
+    vector<int> hexa (16);
     
     // initialize column vectors, row vectors, and tmp variables
     string hex_num {};
@@ -325,26 +323,26 @@ vector<int> cipher_decrypt(const vector<int> &cipher_input, const vector<vector<
     
     // xor
     for (int j = 0; j < 16; j++)
-        hex_output.at(j) = cipher_input.at(j) ^ keys.at(10).at(j);
+        hexa.at(j) = cipher.at(j) ^ keys.at(10).at(j);
         
     // shift rows
-    row2 = {hex_output.at(13), hex_output.at(1), hex_output.at(5), hex_output.at(9)};
-    row3 = {hex_output.at(10), hex_output.at(14), hex_output.at(2), hex_output.at(6)};
-    row4 = {hex_output.at(7), hex_output.at(11), hex_output.at(15), hex_output.at(3)};
+    row2 = {hexa.at(13), hexa.at(1), hexa.at(5), hexa.at(9)};
+    row3 = {hexa.at(10), hexa.at(14), hexa.at(2), hexa.at(6)};
+    row4 = {hexa.at(7), hexa.at(11), hexa.at(15), hexa.at(3)};
     for (int j = 0; j < 4; j++) {
-        hex_output.at(1 + 4 * j) = row2.at(j);
-        hex_output.at(2 + 4 * j) = row3.at(j);
-        hex_output.at(3 + 4 * j) = row4.at(j);
+        hexa.at(1 + 4 * j) = row2.at(j);
+        hexa.at(2 + 4 * j) = row3.at(j);
+        hexa.at(3 + 4 * j) = row4.at(j);
     }
     
     // inverse s-box substitution
     for (int j = 0; j < 16; j++) {
         std::stringstream ss;
-        ss << std::hex << hex_output.at(j);
+        ss << std::hex << hexa.at(j);
         hex_num = ss.str();
         if (hex_num.length() == 1)
             hex_num.insert(0, "0");
-        hex_output.at(j) = inverseSbox[hex2dec.at(hex_num.at(0))][hex2dec.at(hex_num.at(1))];
+        hexa.at(j) = inverseSbox[hex2dec.at(hex_num.at(0))][hex2dec.at(hex_num.at(1))];
     }
     
     // --main rounds--
@@ -352,13 +350,13 @@ vector<int> cipher_decrypt(const vector<int> &cipher_input, const vector<vector<
         
         // xor
         for (int j = 0; j < 16; j++)
-            hex_output.at(j) = hex_output.at(j) ^ keys.at(i).at(j);
+            hexa.at(j) = hexa.at(j) ^ keys.at(i).at(j);
         
         // mix columns
-        col1 = vector<int>(hex_output.begin(), hex_output.begin() + 4);
-        col2 = vector<int>(hex_output.begin() + 4, hex_output.begin() + 8);
-        col3 = vector<int>(hex_output.begin() + 8, hex_output.begin() + 12);
-        col4 = vector<int>(hex_output.begin() + 12, hex_output.end());
+        col1 = vector<int>(hexa.begin(), hexa.begin() + 4);
+        col2 = vector<int>(hexa.begin() + 4, hexa.begin() + 8);
+        col3 = vector<int>(hexa.begin() + 8, hexa.begin() + 12);
+        col4 = vector<int>(hexa.begin() + 12, hexa.end());
         
         for (int j = 0; j < 4; j++) {
             for (int k = 0; k < 4; k++) {
@@ -374,7 +372,7 @@ vector<int> cipher_decrypt(const vector<int> &cipher_input, const vector<vector<
                 tmp4 = (reverseMixer[j][k][0] == 1) ? incrementer : 0; 
                 tmp5.at(k) = tmp1 ^ tmp2 ^ tmp3 ^ tmp4;
             }
-            hex_output.at(j) = tmp5.at(0) ^ tmp5.at(1) ^ tmp5.at(2) ^ tmp5.at(3);
+            hexa.at(j) = tmp5.at(0) ^ tmp5.at(1) ^ tmp5.at(2) ^ tmp5.at(3);
             
             for (int k = 0; k < 4; k++) {
                 tmp1 = (reverseMixer[j][k][3] == 1) ? col2.at(k) : 0;
@@ -389,7 +387,7 @@ vector<int> cipher_decrypt(const vector<int> &cipher_input, const vector<vector<
                 tmp4 = (reverseMixer[j][k][0] == 1) ? incrementer : 0; 
                 tmp5.at(k) = tmp1 ^ tmp2 ^ tmp3 ^ tmp4;
             }
-            hex_output.at(j + 4) = tmp5.at(0) ^ tmp5.at(1) ^ tmp5.at(2) ^ tmp5.at(3);
+            hexa.at(j + 4) = tmp5.at(0) ^ tmp5.at(1) ^ tmp5.at(2) ^ tmp5.at(3);
             
             for (int k = 0; k < 4; k++) {
                 tmp1 = (reverseMixer[j][k][3] == 1) ? col3.at(k) : 0;
@@ -404,7 +402,7 @@ vector<int> cipher_decrypt(const vector<int> &cipher_input, const vector<vector<
                 tmp4 = (reverseMixer[j][k][0] == 1) ? incrementer : 0;
                 tmp5.at(k) = tmp1 ^ tmp2 ^ tmp3 ^ tmp4;
             }
-            hex_output.at(j + 8) = tmp5.at(0) ^ tmp5.at(1) ^ tmp5.at(2) ^ tmp5.at(3);
+            hexa.at(j + 8) = tmp5.at(0) ^ tmp5.at(1) ^ tmp5.at(2) ^ tmp5.at(3);
             
             for (int k = 0; k < 4; k++) {
                 tmp1 = (reverseMixer[j][k][3] == 1) ? col4.at(k) : 0;
@@ -419,102 +417,69 @@ vector<int> cipher_decrypt(const vector<int> &cipher_input, const vector<vector<
                 tmp4 = (reverseMixer[j][k][0] == 1) ? incrementer : 0;
                 tmp5.at(k) = tmp1 ^ tmp2 ^ tmp3 ^ tmp4;
             }
-            hex_output.at(j + 12) = tmp5.at(0) ^ tmp5.at(1) ^ tmp5.at(2) ^ tmp5.at(3);
+            hexa.at(j + 12) = tmp5.at(0) ^ tmp5.at(1) ^ tmp5.at(2) ^ tmp5.at(3);
         }
 
         // shift rows
-        row2 = {hex_output.at(13), hex_output.at(1), hex_output.at(5), hex_output.at(9)};
-        row3 = {hex_output.at(10), hex_output.at(14), hex_output.at(2), hex_output.at(6)};
-        row4 = {hex_output.at(7), hex_output.at(11), hex_output.at(15), hex_output.at(3)};
+        row2 = {hexa.at(13), hexa.at(1), hexa.at(5), hexa.at(9)};
+        row3 = {hexa.at(10), hexa.at(14), hexa.at(2), hexa.at(6)};
+        row4 = {hexa.at(7), hexa.at(11), hexa.at(15), hexa.at(3)};
         for (int j = 0; j < 4; j++) {
-            hex_output.at(1 + 4 * j) = row2.at(j);
-            hex_output.at(2 + 4 * j) = row3.at(j);
-            hex_output.at(3 + 4 * j) = row4.at(j);
+            hexa.at(1 + 4 * j) = row2.at(j);
+            hexa.at(2 + 4 * j) = row3.at(j);
+            hexa.at(3 + 4 * j) = row4.at(j);
         }
         
         // inverse s-box substitution
         for (int j = 0; j < 16; j++) {
             std::stringstream ss;
-            ss << std::hex << hex_output.at(j);
+            ss << std::hex << hexa.at(j);
             hex_num = ss.str();
             if (hex_num.length() == 1)
                 hex_num.insert(0, "0");
-            hex_output.at(j) = inverseSbox[hex2dec.at(hex_num.at(0))][hex2dec.at(hex_num.at(1))];
+            hexa.at(j) = inverseSbox[hex2dec.at(hex_num.at(0))][hex2dec.at(hex_num.at(1))];
         }
     }
 
     // last round
     for (int j = 0; j < 16; j++)
-        hex_output.at(j) = hex_output.at(j) ^ keys.at(0).at(j);
+        hexa.at(j) = hexa.at(j) ^ keys.at(0).at(j);
     
-    return hex_output;
-}
-
-// returns a hex string
-string str2hex(const vector<int> &hex_input) {
-    string str_output {};
-    string hex_num {};
-    
-    for (int i = 0; i < int(hex_input.size()); i++) {
-        std::stringstream ss;
-        ss << std::hex << hex_input.at(i);
-        hex_num = ss.str();
-        if (hex_num.length() == 1)
-            hex_num.insert(0, "0");
-        str_output.append(hex_num);
-    }
-    return str_output;
-}
-
-// returns a plaintext string
-string translate(const vector<int> &hex_input) {
-    string str_output {};
-    for (int i = 0; i < int(hex_input.size()); i++)
-        str_output.push_back(printableChars.at(hex_input.at(i)));
-    return str_output;
-}
-
-// returns a padded vector
-vector<int> pad(const vector<int> &hex_input) {
-    vector<int> hex_output {hex_input};
-    int discrepency = (int(hex_input.size()) % 16 != 0) ? 16 - (int(hex_input.size()) % 16) : 0;
-    vector<int> padding (discrepency, 32);
-    hex_output.insert(hex_output.end(), padding.begin(), padding.end());
-    return hex_output;
+    return hexa;
 }
 
 // combines the all other functions to fully encrypt text
 string encrypt(const string &input, const vector<vector<int>> &keys) {
     //convert input string to hexadecimal
-    vector<int> hex = str2hex(input);
+    vector<int> hexa = text2hexa(input);
     
     // pad vector input if it isn't already divisible by 16
-    hex = pad(hex);
+    hexa = pad(hexa);
 
     
     // AES Encryption
-    vector<int> hex_slice (16);
-    for (int i = 0; i < int(hex.size()); i += 16) {
-        hex_slice = vector<int>(hex.begin() + i, hex.begin() + (i + 16));
-        hex_slice = cipher_encrypt(hex_slice, keys);
-        copy(hex_slice.begin(), hex_slice.end(), hex.begin() + i);
+    vector<int> hexa_slice (16);
+    for (int i = 0; i < int(hexa.size()); i += 16) {
+        hexa_slice = vector<int>(hexa.begin() + i, hexa.begin() + (i + 16));
+        hexa_slice = aes_encrypt(hexa_slice, keys);
+        copy(hexa_slice.begin(), hexa_slice.end(), hexa.begin() + i);
     }
     
     // return string
-    string hex_string = str2hex(hex);
-    return hex_string;
+    string hexa_string = hexa2hexa(hexa);
+    return hexa_string;
 }
 
 // combines the all other functions to fully decrypt text
 string decrypt(const string &input, const vector<vector<int>> &keys) {
     //convert input string to hexadecimal
-    vector<int> text = translate(input);
+    vector<int> text = hexa2hexa(input);
     
     // AES Decryption
     vector<int> text_slice (16);
     for (int i = 0; i < int(text.size()); i += 16) {
         text_slice = vector<int>(text.begin() + i, text.begin() + (i + 16));
-        text_slice = cipher_decrypt(text_slice, keys);
+        text_slice = aes_decrypt(text_slice, keys);
         copy(text_slice.begin(), text_slice.end(), text.begin() + i);
     }
     
@@ -525,6 +490,6 @@ string decrypt(const string &input, const vector<vector<int>> &keys) {
         i -= 1;
     }
     
-    string text_string = translate(text);
+    string text_string = hexa2text(text);
     return text_string;
 }
