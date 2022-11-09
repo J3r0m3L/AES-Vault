@@ -1,14 +1,48 @@
 #include <iostream>
 #include <fstream>
+#include <sstream>
+#include <string>
 #include "entry.h"
 #include "encryption.h"
 
-
+using std::cout;
+using std::endl;
 
 int main() {
     // Read Database and Convert Values into Entries in a Vector
-    //fstream fin;
-    //fin.open("database.csv", ios::in);
+    std::ifstream inputFile;
+    inputFile.open("./database.csv");
+    
+    string line = "";
+    while (getline(inputFile, line)) {
+        string studentId;
+        string lastName;
+        string firstName;
+        int age;
+        string phone;
+        double gpa;
+        string tempString;
+        
+        std::stringstream inputString(line);
+        
+        getline(inputString, studentId, ',');
+        getline(inputString, lastName, ',');
+        getline(inputString, firstName, ',');
+        
+        // getting the age
+        getline(inputString, tempString, ',');
+        age = atoi(tempString.c_str());
+        
+        getline(inputString, phone, ',');
+        
+        // getting the gpa
+        tempString = "";
+        getline(inputString, tempString);
+        gpa = atof(tempString.c_str());
+        
+        line = "";
+    }
+    
     
     // Key
     string key = "ExpectResistance";
