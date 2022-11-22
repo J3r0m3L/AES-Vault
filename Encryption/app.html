@@ -1,0 +1,33 @@
+<html>
+  <head>
+    <title>AES Vault</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="script.js"></script>
+  </head>
+
+  <body>
+    <div class = "labels">
+      <h1>Select</h1>
+      <h1>Organization</h1>
+      <h1>Email</h1>
+      <h1>Username</h1>
+      <h1>Password</h1>
+    </div>
+
+    <div id = "entries">
+    </div>
+
+    <div class = "delete_container">
+      <button class= "delete" onclick="deleteItems()">Delete</button>
+    </div>
+
+    <div id = "addFields">
+      <button onclick="addItem()">Add</button>
+      <input type="text" id="organization">
+      <input type="text" id="email">
+      <input type="text" id="username">
+      <input type="text" id="password">
+    </div>
+
+  </body>
+</html>

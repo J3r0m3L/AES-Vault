@@ -1,0 +1,124 @@
+* {
+    background-color: #6C6B6B;
+    margin: 0;
+}
+
+.labels {
+    display: flex;
+    justify-content: space-around;
+    font-family: "Lucida Console", "Courier New", monospace;
+    align-items: center;
+}
+
+.labels > h1 {
+    font-weight: lighter;
+    text-align: center;
+    font-size: 16px;
+    padding: 5px;
+    width: 120px;
+    color: #F4F4F4;
+}
+
+.entry {
+    display: flex;
+    justify-content: space-around;
+    font-family: "Lucida Console", "Courier New", monospace;
+    align-items: center;
+}
+
+.entry > input {
+    width: 20px;
+    padding: 10px 5px;
+    margin: 10px 100px;
+    background-color: #F4F4F4;
+    scale: 1.5;
+    border: none;
+}
+
+.entry > div {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 5px;
+    margin: 10px;
+    width: 200px;
+    background-color: #F4F4F4;
+}
+
+.entry > div > h1 {
+    font-weight: lighter;
+    font-size: 14px;
+    width: 170px;
+    padding: 5px 0;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    background-color: #F4F4F4;
+}
+
+.entry > div > img {
+    width: 18px;
+    height: 18px;
+    background-color: #F4F4F4;
+}
+
+.entry > div > img:hover {
+    cursor: pointer;
+    border-radius: 5px;
+    background-color: #d1d1d1;
+}
+
+
+.delete_container {
+    background-color: #312F2F;
+    position: fixed;
+    right: 0;
+    bottom: 40px;
+    padding: 10px 0;
+    border-top-left-radius: 20px 20px;
+}
+
+.delete {
+    background-color: #fa5555;
+    font-weight: lighter;
+    font-size: 14px;
+    padding: 5px 10px;
+    margin: 0 10px;
+    border: none;
+    border-radius: 20px;
+}
+
+.delete:hover {
+    scale: 1.1;
+    cursor: pointer;
+}
+
+#addFields {
+    background-color: #312F2F;
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    height: 40px;
+    display: flex;
+    justify-content: space-around;
+}
+
+#addFields > button {
+    background-color: #3deb68;
+    font-weight: lighter;
+    font-size: 14px;
+    padding: 0 5px;
+    margin: 7px 10px;
+    border: none;
+    width: 200px;
+    border-radius: 20px;
+}
+
+#addFields > input {
+    background-color: #F4F4F4;
+    height: 20px;
+    margin: 10px;
+    width: 200px;
+    border: none;
+    font-family: "Lucida Console", "Courier New", monospace;
+}
