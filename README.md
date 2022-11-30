@@ -12,4 +12,4 @@ These files hold the class used to access and manage the data from the database.
 Uses Entry and Encryption files to encrypt, store, and access user and lets users specify AES key.
 
 ## Final Product Design
-![final product](Encryption/images/AES_Vault_Goal.png)
+![final product](AES_Vault_Goal.png)
