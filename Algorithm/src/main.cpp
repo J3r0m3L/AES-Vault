@@ -5,6 +5,7 @@
 #include <vector>
 #include "headers/entry.h"
 #include "headers/encryption.h"
+#include "headers/hash.h"
 
 using std::cout;
 using std::endl;
