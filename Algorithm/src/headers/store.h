@@ -27,3 +27,5 @@ void insertUser(string user);
 // delete row by ID of credentials table
 void deleteData(int ID);
 
+// delete users and credentials table
+void deleteAll();
