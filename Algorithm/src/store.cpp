@@ -110,3 +110,46 @@ string selectUser(int& ID) {
 	sqlite3_close(DB);
 	return selectedUser;
 }
+
+// add data
+void insertData(string org, string email, string user, string pass) {
+	sqlite3* DB;
+	char* msgError;
+	const char* dir = "./credentials.db";
+
+	int exit = sqlite3_open(dir, &DB);
+	string cmd = "INSERT INTO CRED (ORG, EMAIL, USER, PASS) VALUES('" + org + "','" + email + "','" + user + "','" + pass + ");";
+	exit = sqlite3_exec(DB, cmd.c_str(), NULL, 0, &msgError);
+	sqlite3_close(DB);
+	if (exit != SQLITE_OK) {
+		std::cerr << "Error Insert" << std::endl;
+		sqlite3_free(msgError);
+	}
+}
+
+// add user
+void insertUser(string user) {
+	sqlite3* DB;
+	char* msgError;
+	const char* dir = "./users.db";
+
+	int exit = sqlite3_open(dir, &DB);
+	string cmd = "INSERT INTO CRED (USER) VALUES('" + user + "');";
+	exit = sqlite3_exec(DB, cmd.c_str(), NULL, 0, &msgError);
+	sqlite3_close(DB);
+	if (exit != SQLITE_OK) {
+		std::cerr << "Error Insert" << std::endl;
+		sqlite3_free(msgError);
+	}
+}
+
+// delete user
+void deleteData(int ID) {
+	sqlite3* DB;
+	char* msgError;
+	const char* dir = "./credentials.db";
+
+	int exit = sqlite3_open(dir, &DB);
+	string sql = "DELETE FROM CRED WHERE ID =" + std::to_string(ID) + ";";
+	sqlite3_exec(DB, sql.c_str(), 0, NULL, NULL);
+}
