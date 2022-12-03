@@ -29,7 +29,7 @@ int main() {
     google.notSecret(keys);
     google.print();
     cout << endl;
-
+    /*
     createDB();
     createTables();
     //google.store();
