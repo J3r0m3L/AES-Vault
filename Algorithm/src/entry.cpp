@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include "headers/encryption.h"
+#include "headers/store.h"
 
 using std::cout;
 using std::endl;
@@ -45,7 +46,7 @@ Entry::Entry(int id, string org, string em, string user, string passwd)
 
 // Methods
 void Entry::store() {
-    cout << "Placeholder";
+    insertData(organization, email, username, password);
 }
 
 void Entry::remove() {
