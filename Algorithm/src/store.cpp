@@ -6,13 +6,14 @@
 
 using std::string;
 using std::vector;
+using std::cout;
+using std::endl;
 
+const char* dir = "./credentials.db";
 
 // create db if not exists
 void createDB() {
 	sqlite3* DB;
-	const char* dir = "./credentials.db";
-
 	int exit = sqlite3_open(dir, &DB);
 	sqlite3_close(DB);
 }
@@ -20,8 +21,6 @@ void createDB() {
 // create tables if not exists
 void createTables() {
 	sqlite3* DB;
-	const char* dir = "./credentials.db";
-
 	string cmd1 = "CREATE TABLE IF NOT EXISTS USERS("
 		"ID INTEGER PRIMARY KEY AUTOINCREMENT, "
 		"USER		TEXT NOT NULL);";
@@ -33,37 +32,32 @@ void createTables() {
 		"USER		TEXT NOT NULL,"
 		"PASS		TEXT NOT NULL);";
 
-	try {
-		int exit = sqlite3_open(dir, &DB);
-		char* msgError;
-		exit = sqlite3_exec(DB, cmd1.c_str(), NULL, 0, &msgError);
-		if (exit != SQLITE_OK) {
-			std::cerr << "Error Create Table" << std::endl;
+	if (sqlite3_open(dir, &DB) == SQLITE_OK) {
+		char* msgError = NULL;
+		sqlite3_exec(DB, cmd1.c_str(), NULL, 0, &msgError);
+		if (msgError != NULL) {
+			cout << "Table 1: " << msgError << endl;
 			sqlite3_free(msgError);
 		}
 
-		exit = sqlite3_exec(DB, cmd2.c_str(), NULL, 0, &msgError);
-		if (exit != SQLITE_OK) {
-			std::cerr << "Error Create Table" << std::endl;
+		sqlite3_exec(DB, cmd2.c_str(), NULL, 0, &msgError);
+		if (msgError != NULL) {
+			cout << "Table 2: " << msgError << endl;
 			sqlite3_free(msgError);
 		}
 
 		sqlite3_close(DB);
-	}
-	catch (const std::exception& err) {
-		std::cerr << err.what() << std::endl;
+
+	} else {
+		cout << "Failed to Open DB" << endl;
 	}
 }
 
-// grab data
+// select all data
 vector<vector<string>> selectData() {
 	sqlite3* DB;
 	sqlite3_stmt* stmt;
-	const char* dir = "./credentials.db";
-	
-	vector<vector<string>> selectedData;
-	for (int i = 0; i < 5; i++)
-		selectedData.push_back(vector<string>());
+	vector<vector<string>> selectedData = { {}, {}, {}, {}, {} };
 
 	if (sqlite3_open(dir, &DB) == SQLITE_OK) {
 		sqlite3_prepare(DB, "SELECT * from CRED;", -1, &stmt, NULL);
@@ -73,65 +67,91 @@ vector<vector<string>> selectData() {
 				selectedData.at(i).push_back(string((char*)sqlite3_column_text(stmt, i)));
 			sqlite3_step(stmt);
 		}
+		sqlite3_finalize(stmt);
 		sqlite3_close(DB);
 	}
 	else {
-		std::cerr << "Failed to Open DB" << std::endl;
+		cout << "Failed to Open DB" << endl;
 	}
-	
 	return selectedData;
 }
 
-// grab user
-string selectUser(int ID) {
+// select last data
+vector<string> selectCred() {
 	sqlite3* DB;
 	sqlite3_stmt* stmt;
-	const char* dir = "./credentials.db";
-
-	string selectedUser = "";
-	string cmd = "SELECT * from USERS WHERE ID = " + std::to_string(ID) + ";";
+	vector<string> selectedData = {"", "", "", "", ""};
 
 	if (sqlite3_open(dir, &DB) == SQLITE_OK) {
-		sqlite3_prepare(DB, cmd.c_str(), -1, &stmt, NULL);
+		sqlite3_prepare(DB, "SELECT * FROM CRED WHERE ID = (SELECT MAX(ID) FROM CRED); ", -1, &stmt, NULL);
 		sqlite3_step(stmt);
-		selectedUser = string((char*)sqlite3_column_text(stmt, 1));
+		for (int i = 0; i < 5; i++)
+			selectedData.at(i) = string((char*)sqlite3_column_text(stmt, i));
+		sqlite3_finalize(stmt);
+		sqlite3_close(DB);
 	}
 	else {
-		std::cerr << "Failed to open db" << std::endl;
+		cout << "Failed to Open DB" << endl;
 	}
-	sqlite3_close(DB);
+	return selectedData;
+}
+
+// select first user
+string selectUser() {
+	sqlite3* DB;
+	sqlite3_stmt* stmt;
+	string selectedUser = "";
+
+	if (sqlite3_open(dir, &DB) == SQLITE_OK) {
+		sqlite3_prepare(DB, "SELECT * from USERS;", -1, &stmt, NULL);
+		sqlite3_step(stmt);
+		if (sqlite3_column_text(stmt, 0))
+			selectedUser = string((char*)sqlite3_column_text(stmt, 1));
+		sqlite3_finalize(stmt);
+		sqlite3_close(DB);
+	}
+	else {
+		cout << "Failed to Open DB" << endl;
+	}
+	
 	return selectedUser;
 }
 
 // add data
 void insertData(string org, string email, string user, string pass) {
 	sqlite3* DB;
-	char* msgError;
-	const char* dir = "./credentials.db";
-
-	int exit = sqlite3_open(dir, &DB);
-	string cmd = "INSERT INTO CRED (ORG, EMAIL, USER, PASS) VALUES('" + org + "','" + email + "','" + user + "','" + pass + "');";
-	exit = sqlite3_exec(DB, cmd.c_str(), NULL, 0, &msgError);
-	sqlite3_close(DB);
-	if (exit != SQLITE_OK) {
-		std::cerr << "Error Insert" << std::endl;
-		sqlite3_free(msgError);
+	char* msgError = NULL;
+	
+	if (sqlite3_open(dir, &DB) == SQLITE_OK) {
+		string cmd = "INSERT INTO CRED (ORG, EMAIL, USER, PASS) VALUES('" + org + "','" + email + "','" + user + "','" + pass + "');";
+		sqlite3_exec(DB, cmd.c_str(), NULL, 0, &msgError);
+		if (msgError != NULL) {
+			cout << msgError << endl;
+			sqlite3_free(msgError);
+		}
+		sqlite3_close(DB);
+	}
+	else {
+		cout << "Failed to Open DB" << endl;
 	}
 }
 
 // add user
 void insertUser(string user) {
 	sqlite3* DB;
-	char* msgError;
-	const char* dir = "./credentials.db";
+	char* msgError = NULL;
 
-	int exit = sqlite3_open(dir, &DB);
-	string cmd = "INSERT INTO USERS (USER) VALUES('" + user + "');";
-	exit = sqlite3_exec(DB, cmd.c_str(), NULL, 0, &msgError);
-	sqlite3_close(DB);
-	if (exit != SQLITE_OK) {
-		std::cerr << "Error Insert" << std::endl;
-		sqlite3_free(msgError);
+	if (sqlite3_open(dir, &DB) == SQLITE_OK) {
+		string cmd = "INSERT INTO USERS (USER) VALUES('" + user + "');";
+		sqlite3_exec(DB, cmd.c_str(), NULL, 0, &msgError);
+		if (msgError != NULL) {
+			cout << msgError << endl;
+			sqlite3_free(msgError);
+		}
+		sqlite3_close(DB);
+	}
+	else {
+		cout << "Failed to Open DB" << endl;
 	}
 }
 
@@ -139,15 +159,19 @@ void insertUser(string user) {
 void deleteData(int ID) {
 	sqlite3* DB;
 	char* msgError = NULL;
-	const char* dir = "./credentials.db";
 
-	int exit = sqlite3_open(dir, &DB);
-	if (exit == SQLITE_OK) {
+	if (sqlite3_open(dir, &DB) == SQLITE_OK) {
 		string cmd = "DELETE FROM CRED WHERE ID =" + std::to_string(ID) + ";";
 		sqlite3_exec(DB, cmd.c_str(), NULL, NULL, &msgError);
 		sqlite3_close(DB);
-		if (msgError != NULL)
-			std::cout << msgError;
+		if (msgError != NULL) {
+			cout << msgError << endl;
+			sqlite3_free(msgError);
+		}
+		sqlite3_close(DB);
+	}
+	else {
+		cout << "Failed to Open DB" << endl;
 	}
 }
 
@@ -155,19 +179,23 @@ void deleteData(int ID) {
 void deleteAll() {
 	sqlite3* DB;
 	char* msgError = NULL;
-	const char* dir = "./credentials.db";
 
-	int exit = sqlite3_open(dir, &DB);
-	if (exit == SQLITE_OK) {
+	if (sqlite3_open(dir, &DB) == SQLITE_OK) {
 		string cmd = "DELETE FROM CRED;";
-		exit = sqlite3_exec(DB, cmd.c_str(), NULL, NULL, &msgError);
-		if (msgError != NULL)
-			std::cout << msgError;
-
+		sqlite3_exec(DB, cmd.c_str(), NULL, NULL, &msgError);
+		if (msgError != NULL) {
+			cout << "Table 2: " << msgError << endl;
+			sqlite3_free(msgError);
+		}
 		cmd = "DELETE FROM USERS;";
-		exit = sqlite3_exec(DB, cmd.c_str(), NULL, NULL, &msgError);
-		if (msgError != NULL)
-			std::cout << msgError;
+		sqlite3_exec(DB, cmd.c_str(), NULL, NULL, &msgError);
+		if (msgError != NULL) {
+			cout << "Table 1: " << msgError << endl;
+			sqlite3_free(msgError);
+		}
 		sqlite3_close(DB);
+	}
+	else {
+		cout << "Failed to Open DB" << endl;
 	}
 }

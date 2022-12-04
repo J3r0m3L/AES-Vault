@@ -4,6 +4,10 @@
 #include <wx/spinctrl.h>
 #include <wx/font.h>
 #include <string>
+#include "headers/entry.h"
+#include "headers/encryption.h"
+#include "headers/hash.h"
+#include "headers/store.h";
 
 using std::string;
 
@@ -14,10 +18,20 @@ public:
 
 private:
     void ChangePage(wxShowEffect);
+    void AddRow(string select, string ID, string org, string email, string user, string pass);
+    void StoreRow();
 
     wxTextCtrl* loginInput;
     wxSimplebook* m_simplebook;
     wxStaticText* m_pageIndicator;
+    wxListView* basicListView;
+    vector<vector<int>> keys;
+
+    wxTextCtrl* orgText;
+    wxTextCtrl* emailText;
+    wxTextCtrl* userText;
+    wxTextCtrl* passText;
+
 };
 
 MyFrame::MyFrame() :wxFrame(NULL, wxID_ANY, "Valut v0.1", wxDefaultPosition, wxSize(700, 500)) {
@@ -42,7 +56,7 @@ MyFrame::MyFrame() :wxFrame(NULL, wxID_ANY, "Valut v0.1", wxDefaultPosition, wxS
     wxButton* loginSubmit = new wxButton(page1, wxID_ANY, "Test Button", wxDefaultPosition, wxDefaultSize);
 
     // credentials page
-    wxListView* basicListView = new wxListView(page2);
+    basicListView = new wxListView(page2);
     basicListView->AppendColumn("");
     basicListView->AppendColumn("ID");
     basicListView->AppendColumn("Organization");
@@ -56,10 +70,10 @@ MyFrame::MyFrame() :wxFrame(NULL, wxID_ANY, "Valut v0.1", wxDefaultPosition, wxS
     basicListView->SetColumnWidth(4, 90);
     basicListView->SetColumnWidth(5, 90);
     wxButton* addEntry = new wxButton(page2, wxID_ANY, "Add", wxDefaultPosition, wxDefaultSize);
-    wxTextCtrl* orgText = new wxTextCtrl(page2, wxID_ANY, "org", wxDefaultPosition, wxDefaultSize);
-    wxTextCtrl* emailText = new wxTextCtrl(page2, wxID_ANY, "email", wxDefaultPosition, wxDefaultSize);
-    wxTextCtrl* userText = new wxTextCtrl(page2, wxID_ANY, "user", wxDefaultPosition, wxDefaultSize);
-    wxTextCtrl* passText = new wxTextCtrl(page2, wxID_ANY, "pass", wxDefaultPosition, wxDefaultSize);
+    orgText = new wxTextCtrl(page2, wxID_ANY, "org", wxDefaultPosition, wxDefaultSize);
+    emailText = new wxTextCtrl(page2, wxID_ANY, "email", wxDefaultPosition, wxDefaultSize);
+    userText = new wxTextCtrl(page2, wxID_ANY, "user", wxDefaultPosition, wxDefaultSize);
+    passText = new wxTextCtrl(page2, wxID_ANY, "pass", wxDefaultPosition, wxDefaultSize);
     wxButton* deleteEntry = new wxButton(page2, wxID_ANY, "Delete Selected", wxDefaultPosition, wxDefaultSize);
     basicListView->SetBackgroundColour(wxColour(108, 107, 107));
     basicListView->SetForegroundColour(wxColour(245, 245, 245));
@@ -120,15 +134,80 @@ MyFrame::MyFrame() :wxFrame(NULL, wxID_ANY, "Valut v0.1", wxDefaultPosition, wxS
     loginSubmit->Bind(wxEVT_BUTTON,
         [this](wxCommandEvent&) {ChangePage(wxSHOW_EFFECT_SLIDE_TO_TOP); });
 
+    addEntry->Bind(wxEVT_BUTTON,
+        [this](wxCommandEvent&) {StoreRow(); });
+
 }
 
 void MyFrame::ChangePage(wxShowEffect effect)
 {
-    std::string input = loginInput->GetValue().ToStdString();
-    if (input == "password") {
-        m_simplebook->SetEffect(effect);
-        m_simplebook->AdvanceSelection(effect == wxSHOW_EFFECT_SLIDE_TO_TOP);
+    string input = loginInput->GetValue().ToStdString();
+    if (input == "" || input.length() > 54) wxLogStatus("Invalid Password");
+    else {
+        createDB();
+        createTables();
+        string username = selectUser();
+        input = convert2hash(input);
+        if (username == "") {
+            insertUser(input);
+            keys = key_gen(text2hexa(input));
+            m_simplebook->SetEffect(effect);
+            m_simplebook->AdvanceSelection(effect == wxSHOW_EFFECT_SLIDE_TO_TOP);
+            wxLogStatus("");
+        }
+        else {
+            if (username == input) {
+                keys = key_gen(text2hexa(input));
+                // grab data
+                // decrypt and display it to table
+                m_simplebook->SetEffect(effect);
+                m_simplebook->AdvanceSelection(effect == wxSHOW_EFFECT_SLIDE_TO_TOP);
+                wxLogStatus("");
+            }
+            else {
+                wxLogStatus("Incorrect Password");
+            }
+        }
     }
+}
+
+void MyFrame::StoreRow() {
+    string organization = orgText->GetValue().ToStdString();
+    string email = emailText->GetValue().ToStdString();
+    string username = userText->GetValue().ToStdString();
+    string password = passText->GetValue().ToStdString();
+    
+    if (organization == "" && email == "" && username == "" && password == "")  wxLogStatus("Invalid Addition");
+    else {
+        organization = encrypt(organization, keys);
+        email = encrypt(email, keys);
+        username = encrypt(username, keys);
+        password = encrypt(password, keys);
+        insertData(organization, email, username, password);
+        orgText->Clear();
+        emailText->Clear();
+        userText->Clear();
+        passText->Clear();
+        vector<string> credentials = selectCred();
+        credentials.at(1) = decrypt(credentials.at(1), keys);
+        credentials.at(2) = decrypt(credentials.at(2), keys);
+        credentials.at(3) = decrypt(credentials.at(3), keys);
+        credentials.at(4) = decrypt(credentials.at(4), keys);
+        AddRow("unselected", credentials.at(0), credentials.at(1), credentials.at(2), credentials.at(3), credentials.at(4));
+        wxLogStatus("Information Added");
+    }
+
+
+
+}
+
+void MyFrame::AddRow(string select="unselected", string ID="", string org="", string email="", string user="", string pass="") {
+    basicListView->InsertItem(0, select);
+    basicListView->SetItem(0, 1, ID);
+    basicListView->SetItem(0, 2, org);
+    basicListView->SetItem(0, 3, email);
+    basicListView->SetItem(0, 4, user);
+    basicListView->SetItem(0, 5, pass);
 }
 
 

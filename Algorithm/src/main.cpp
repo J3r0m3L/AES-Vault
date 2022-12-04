@@ -29,23 +29,32 @@ int main() {
     google.notSecret(keys);
     google.print();
     cout << endl;
-    /*
-    createDB();
-    createTables();
+
+
+    /*string drag = "Lame";
+    drag = convert2hash(drag);
+    cout << drag << std::endl;*/
+    //deleteAll();
+    //createDB();
+    //createTables();
     //google.store();
     //meta.store();
-    vector<vector<string>> storedData = selectData();
+    
+    /*vector<vector<string>> storedData = selectData();
     for (int i = 0; i < storedData.at(0).size(); i++) {
         for (int j = 0; j < storedData.size(); j++) {
             cout << storedData.at(j).at(i) << " ";
         }
         cout << endl;
-    }
+    }*/
     //insertUser("Lammmmmee");
-    //cout << selectUser(1) << endl;
+    /*
+    string test = selectUser();
+    cout << "Test:" << endl;
+    cout << test << endl;
     cout << "wowowowowwowowo" << endl;
-    //deleteAll();
-    deleteData(14);
+    deleteAll();
+    //deleteData(14);
     /*
     storedData = selectData();
     for (int i = 0; i < storedData.at(0).size(); i++) {

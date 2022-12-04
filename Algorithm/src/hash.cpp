@@ -47,7 +47,7 @@ vector<uint32_t> preprocess(const string& text) {
 	vector<uint32_t> hash(16);
 
 	for (int i = 0; i < 16; i++)
-		hash.at(i) = stoi(binary_text.substr(i * 32, 32), 0, 2);
+		hash.at(i) = stoul(binary_text.substr(i * 32, 32), 0, 2);
 
 	return hash;
 }

@@ -15,8 +15,11 @@ void createTables();
 // select all entries of credentials table
 vector<vector<string>> selectData();
 
-// select an entry of users table
-string selectUser(int ID);
+// select last entry of users table
+vector<string> selectCred();
+
+// select first entry of users table
+string selectUser();
 
 // insert data into credentials table
 void insertData(string org, string email, string user, string pass);

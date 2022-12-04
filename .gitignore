@@ -5,3 +5,5 @@ Algorithm/Algorithm.vcxproj
 Algorithm/Algorithm.vcxproj.filters
 Algorithm/Algorithm.vcxproj.user
 Algorithm/Packages
+Algorithm/credentials.db
+
