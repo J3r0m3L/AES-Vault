@@ -1,27 +1,26 @@
 #include "wx/wx.h"
 #include <wx/listctrl.h>
 #include <wx/simplebook.h>
-#include <wx/spinctrl.h>
 #include <wx/font.h>
 #include <string>
-#include <numeric>
 #include <vector>
-#include "headers/entry.h"
 #include "headers/encryption.h"
 #include "headers/hash.h"
 #include "headers/store.h";
 
 using std::string;
+using std::vector;
 
-class MyFrame : public wxFrame
-{
+
+
+class MyFrame : public wxFrame {
 public:
     MyFrame();
 
 private:
     void ChangePage(wxShowEffect);
-    void AddRow(string ID, string org, string email, string user, string pass);
     void StoreRow();
+    void AddRow(string ID, string org, string email, string user, string pass);
     void SelectItem();
     void DeleteItems();
 
@@ -37,7 +36,6 @@ private:
     wxTextCtrl* emailText;
     wxTextCtrl* userText;
     wxTextCtrl* passText;
-
 };
 
 MyFrame::MyFrame() :wxFrame(NULL, wxID_ANY, "Vault v0.1", wxDefaultPosition, wxSize(700, 500)) {
@@ -115,23 +113,6 @@ MyFrame::MyFrame() :wxFrame(NULL, wxID_ANY, "Vault v0.1", wxDefaultPosition, wxS
 
     bg->SetSizer(mainSizer);
     Layout();
-
-    // populateListView
-    /*
-    basicListView->InsertItem(0, "");
-    basicListView->SetItem(0, 1, "1");
-    basicListView->SetItem(0, 2, "Google");
-    basicListView->SetItem(0, 3, "Alphabet@gmail.com");
-    basicListView->SetItem(0, 4, "Alphabet");
-    basicListView->SetItem(0, 5, "Password");
-
-    basicListView->InsertItem(0, "");
-    basicListView->SetItem(0, 1, "2");
-    basicListView->SetItem(0, 2, "Yahoo");
-    basicListView->SetItem(0, 3, "Alphabet@gmail.com");
-    basicListView->SetItem(0, 4, "Alphabet");
-    basicListView->SetItem(0, 5, "Password");
-    */
     CreateStatusBar();
 
     // event handle buttons
@@ -139,13 +120,13 @@ MyFrame::MyFrame() :wxFrame(NULL, wxID_ANY, "Vault v0.1", wxDefaultPosition, wxS
         [this](wxCommandEvent&) {ChangePage(wxSHOW_EFFECT_SLIDE_TO_TOP); });
 
     addEntry->Bind(wxEVT_BUTTON,
-        [this](wxCommandEvent&) {StoreRow(); });
+        [this](wxCommandEvent&) {StoreRow();});
 
     basicListView->Bind(wxEVT_LIST_ITEM_SELECTED,
-        [this](wxListEvent& evt) {SelectItem();  });
+        [this](wxListEvent& evt) {SelectItem();});
 
     deleteEntry->Bind(wxEVT_BUTTON,
-        [this](wxCommandEvent& evt) {DeleteItems();  });
+        [this](wxCommandEvent& evt) {DeleteItems();});
 }
 
 void MyFrame::ChangePage(wxShowEffect effect)
@@ -246,15 +227,12 @@ void MyFrame::SelectItem() {
     }
     
     string tmp = "";
-    for (int i = 0; i < selectedItems.size(); i++) {
+    for (int i = 0; i < selectedItems.size(); i++)
         tmp += selectedItems.at(i) + ", ";
-    }
-
     tmp.pop_back();
     tmp.pop_back();
 
     wxLogStatus(tmp.c_str());
-    // iterate through entire thing checking state and then if we happen upon one selected add to array
 }
 
 void MyFrame::DeleteItems() {
@@ -278,14 +256,9 @@ void MyFrame::DeleteItems() {
     wxLogStatus("Item Deleted");
 }
 
-
-
-
-class MyApp : public wxApp
-{
+class MyApp : public wxApp {
 public:
-    virtual bool OnInit()
-    {
+    virtual bool OnInit() {
         MyFrame* frame = new MyFrame();
         frame->Center();
         frame->Show();
