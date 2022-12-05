@@ -15,9 +15,9 @@ These files hold the functions to query the SQLite database.
 Uses functions to encrypt, store, and access user credentials through a wxWidgets GUI.
 
 ## Todo
--Need to replace my Sqlite functions with the integrated wxWidgets Sqlite functions.
--Need to add salt to my hashes.
--Need to implement anti-bruteforce methods.
+-Need to replace my Sqlite functions with the integrated wxWidgets Sqlite functions. <br />
+-Need to add salt to my hashes. <br />
+-Need to implement anti-bruteforce methods. <br />
 -Need to add table and another tab in the GUI to keep track of database changes.
 
 ## Final Product Design
