@@ -6,4 +6,4 @@ Algorithm/Algorithm.vcxproj.filters
 Algorithm/Algorithm.vcxproj.user
 Algorithm/Packages
 Algorithm/credentials.db
-
+Algorithm/src/sqlite3.c

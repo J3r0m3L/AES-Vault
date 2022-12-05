@@ -4,6 +4,8 @@
 #include <wx/spinctrl.h>
 #include <wx/font.h>
 #include <string>
+#include <numeric>
+#include <vector>
 #include "headers/entry.h"
 #include "headers/encryption.h"
 #include "headers/hash.h"
@@ -18,14 +20,18 @@ public:
 
 private:
     void ChangePage(wxShowEffect);
-    void AddRow(string select, string ID, string org, string email, string user, string pass);
+    void AddRow(string ID, string org, string email, string user, string pass);
     void StoreRow();
+    void SelectItem();
+    void DeleteItems();
 
     wxTextCtrl* loginInput;
     wxSimplebook* m_simplebook;
     wxStaticText* m_pageIndicator;
     wxListView* basicListView;
     vector<vector<int>> keys;
+    vector<string> selectedItems;
+    int listlen;
 
     wxTextCtrl* orgText;
     wxTextCtrl* emailText;
@@ -34,7 +40,7 @@ private:
 
 };
 
-MyFrame::MyFrame() :wxFrame(NULL, wxID_ANY, "Valut v0.1", wxDefaultPosition, wxSize(700, 500)) {
+MyFrame::MyFrame() :wxFrame(NULL, wxID_ANY, "Vault v0.1", wxDefaultPosition, wxSize(700, 500)) {
 
     // create pages
     wxPanel* bg = new wxPanel(this, wxID_ANY);
@@ -57,18 +63,16 @@ MyFrame::MyFrame() :wxFrame(NULL, wxID_ANY, "Valut v0.1", wxDefaultPosition, wxS
 
     // credentials page
     basicListView = new wxListView(page2);
-    basicListView->AppendColumn("");
     basicListView->AppendColumn("ID");
     basicListView->AppendColumn("Organization");
     basicListView->AppendColumn("Email");
     basicListView->AppendColumn("Username");
     basicListView->AppendColumn("Password");
     basicListView->SetColumnWidth(0, 50);
-    basicListView->SetColumnWidth(1, 50);
+    basicListView->SetColumnWidth(1, 200);
     basicListView->SetColumnWidth(2, 200);
-    basicListView->SetColumnWidth(3, 200);
+    basicListView->SetColumnWidth(3, 90);
     basicListView->SetColumnWidth(4, 90);
-    basicListView->SetColumnWidth(5, 90);
     wxButton* addEntry = new wxButton(page2, wxID_ANY, "Add", wxDefaultPosition, wxDefaultSize);
     orgText = new wxTextCtrl(page2, wxID_ANY, "org", wxDefaultPosition, wxDefaultSize);
     emailText = new wxTextCtrl(page2, wxID_ANY, "email", wxDefaultPosition, wxDefaultSize);
@@ -137,6 +141,11 @@ MyFrame::MyFrame() :wxFrame(NULL, wxID_ANY, "Valut v0.1", wxDefaultPosition, wxS
     addEntry->Bind(wxEVT_BUTTON,
         [this](wxCommandEvent&) {StoreRow(); });
 
+    basicListView->Bind(wxEVT_LIST_ITEM_SELECTED,
+        [this](wxListEvent& evt) {SelectItem();  });
+
+    deleteEntry->Bind(wxEVT_BUTTON,
+        [this](wxCommandEvent& evt) {DeleteItems();  });
 }
 
 void MyFrame::ChangePage(wxShowEffect effect)
@@ -159,6 +168,19 @@ void MyFrame::ChangePage(wxShowEffect effect)
             if (username == input) {
                 keys = key_gen(text2hexa(input));
                 // grab data
+                listlen = 0;
+                vector<vector<string>> tmp = selectData();
+                for (int i = 0; i < tmp.at(0).size(); i++) {
+                    AddRow(
+                        tmp.at(0).at(i),
+                        decrypt(tmp.at(1).at(i), keys),
+                        decrypt(tmp.at(2).at(i), keys),
+                        decrypt(tmp.at(3).at(i), keys),
+                        decrypt(tmp.at(4).at(i), keys)
+                        );
+                    listlen++;
+                }
+
                 // decrypt and display it to table
                 m_simplebook->SetEffect(effect);
                 m_simplebook->AdvanceSelection(effect == wxSHOW_EFFECT_SLIDE_TO_TOP);
@@ -176,7 +198,6 @@ void MyFrame::StoreRow() {
     string email = emailText->GetValue().ToStdString();
     string username = userText->GetValue().ToStdString();
     string password = passText->GetValue().ToStdString();
-    
     if (organization == "" && email == "" && username == "" && password == "")  wxLogStatus("Invalid Addition");
     else {
         organization = encrypt(organization, keys);
@@ -193,7 +214,8 @@ void MyFrame::StoreRow() {
         credentials.at(2) = decrypt(credentials.at(2), keys);
         credentials.at(3) = decrypt(credentials.at(3), keys);
         credentials.at(4) = decrypt(credentials.at(4), keys);
-        AddRow("unselected", credentials.at(0), credentials.at(1), credentials.at(2), credentials.at(3), credentials.at(4));
+        AddRow(credentials.at(0), credentials.at(1), credentials.at(2), credentials.at(3), credentials.at(4));
+        listlen++;
         wxLogStatus("Information Added");
     }
 
@@ -201,14 +223,62 @@ void MyFrame::StoreRow() {
 
 }
 
-void MyFrame::AddRow(string select="unselected", string ID="", string org="", string email="", string user="", string pass="") {
-    basicListView->InsertItem(0, select);
-    basicListView->SetItem(0, 1, ID);
-    basicListView->SetItem(0, 2, org);
-    basicListView->SetItem(0, 3, email);
-    basicListView->SetItem(0, 4, user);
-    basicListView->SetItem(0, 5, pass);
+void MyFrame::AddRow(string ID="", string org="", string email="", string user="", string pass="") {
+    basicListView->InsertItem(0, ID);
+    basicListView->SetItem(0, 1, org);
+    basicListView->SetItem(0, 2, email);
+    basicListView->SetItem(0, 3, user);
+    basicListView->SetItem(0, 4, pass);
 }
+
+void MyFrame::SelectItem() {
+    selectedItems = {};
+    string lastValue = "";
+    for (int i = -1; i < listlen - 1; i++) {
+        long selectedListIndex = basicListView->GetNextItem(i, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
+        if (selectedListIndex != -1) {
+            string test = basicListView->GetItemText(selectedListIndex, 0).ToStdString();
+            if (test != lastValue) {
+                selectedItems.push_back(test);
+                lastValue = test;
+            }
+        }
+    }
+    
+    string tmp = "";
+    for (int i = 0; i < selectedItems.size(); i++) {
+        tmp += selectedItems.at(i) + ", ";
+    }
+
+    tmp.pop_back();
+    tmp.pop_back();
+
+    wxLogStatus(tmp.c_str());
+    // iterate through entire thing checking state and then if we happen upon one selected add to array
+}
+
+void MyFrame::DeleteItems() {
+    for (int i = 0; i < selectedItems.size(); i++) {
+        deleteData(std::stoi(selectedItems.at(i)));
+        listlen--;
+    }
+
+    basicListView->DeleteAllItems();
+    vector<vector<string>> tmp = selectData();
+    for (int i = 0; i < tmp.at(0).size(); i++) {
+        AddRow(
+            tmp.at(0).at(i),
+            decrypt(tmp.at(1).at(i), keys),
+            decrypt(tmp.at(2).at(i), keys),
+            decrypt(tmp.at(3).at(i), keys),
+            decrypt(tmp.at(4).at(i), keys)
+        );
+    }
+
+    wxLogStatus("Item Deleted");
+}
+
+
 
 
 class MyApp : public wxApp

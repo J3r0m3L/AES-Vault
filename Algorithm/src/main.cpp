@@ -40,13 +40,13 @@ int main() {
     //google.store();
     //meta.store();
     
-    /*vector<vector<string>> storedData = selectData();
+    vector<vector<string>> storedData = selectData();
     for (int i = 0; i < storedData.at(0).size(); i++) {
         for (int j = 0; j < storedData.size(); j++) {
             cout << storedData.at(j).at(i) << " ";
         }
         cout << endl;
-    }*/
+    }
     //insertUser("Lammmmmee");
     /*
     string test = selectUser();
